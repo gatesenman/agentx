@@ -1,190 +1,214 @@
-# 功能实现工作流
+# 功能实现工作流 (Playbook)
 
 ## 触发条件
-用户请求新功能、增强、或添加新的 API/组件/页面。
+- 用户要求添加新功能
+- 用户说"实现..."、"添加..."、"创建..."
+- Issue 类型为 feature request
+
+---
 
 ## 完整步骤
 
-### 第1步: 理解需求
-```
-分析清单:
-  □ 功能的核心目标是什么?
-  □ 验收标准（什么算"做完"）?
-  □ 有 UI 变更吗? 有设计稿吗?
-  □ 需要新的 API 端点吗?
-  □ 需要数据库变更吗?
-  □ 有安全/权限要求吗?
-  □ 需要向后兼容吗?
+### 第1步: 需求分析
 
-如有歧义: 提出澄清问题，但同时开始行动（研究代码库）
+**操作**:
+1. 提取功能需求的核心要点
+2. 识别约束条件（技术栈、性能、兼容性）
+3. 确认验收标准（功能做到什么程度算完成）
+4. 如果需求不明确，在开始调研的同时向用户确认
+
+**决策点**:
+```
+需求清晰度:
+├── 完全清晰 → 直接规划实现
+├── 大方向清晰，细节不明 → 边做边确认
+└── 需求模糊 → 先研究代码库再提方案
 ```
 
-### 第2步: 探索代码库
+---
+
+### 第2步: 代码库调研
+
 ```bash
-# 找到相关的现有代码
-grep -r "相关关键词" src/ --include="*.{ts,tsx,js,jsx}" -l
-grep -r "相关关键词" src/ --include="*.py" -l
+# 找到相关模块
+grep -rn "相关功能关键词" src/ --include="*.ts"
+find . -name "*相关名称*" -type f
 
-# 理解项目结构
-find src/ -type f -name "*.ts" | head -30
-ls -la src/components/   # 前端
-ls -la src/api/          # 后端
-ls -la src/models/       # 数据模型
+# 理解现有架构
+cat src/modules/index.ts  # 入口
+cat src/routes/index.ts   # 路由
 
-# 检查现有类似功能的实现模式
-cat src/components/已有组件.tsx   # 了解组件模式
-cat src/api/已有端点.ts          # 了解 API 模式
-cat src/models/已有模型.ts        # 了解数据模型模式
-
-# 检查可复用的工具函数
-find src/ -path "*/utils/*" -o -path "*/helpers/*" -o -path "*/lib/*" | head -20
-
-# 检查依赖
-cat package.json | grep -A 50 '"dependencies"'
-# 或
-cat pyproject.toml
+# 查看类似功能的实现（作为参考）
+grep -rn "类似功能" src/ --include="*.ts" -l
 ```
 
-### 第3步: 规划实现
-```
-创建 todo 列表:
-  1. 需要创建的文件（列出路径和职责）
-  2. 需要修改的文件（列出路径和改动点）
-  3. 需要的新依赖（如有）
-  4. 实现顺序（数据层 → 逻辑层 → 展示层）
-  5. 边界情况清单
+**关键输出**:
+- 现有类似功能的实现模式
+- 应该在哪些文件/目录添加代码
+- 需要修改哪些已有文件
+- 依赖关系图
 
-依赖检查:
-  - 新库先确认 package.json 中是否已有
-  - 不引入不必要的新依赖
-  - 用项目已有的工具函数
-```
+---
 
-### 第4步: 实现
-```
-编码原则:
-  1. 遵循代码库中的现有模式
-     - 组件结构（函数式/类式）
-     - 状态管理方式
-     - API 调用模式
-     - 错误处理模式
-     - 命名约定（camelCase/snake_case）
+### 第3步: 制定实现计划
 
-  2. Import 规范
-     - 所有 import 放文件顶部
-     - 按约定分组（第三方 → 内部 → 相对路径）
-     - 不在函数内部 import
+**计划内容**:
+```markdown
+## 实现计划
 
-  3. 类型安全
-     - 定义所有必要的类型/接口
-     - 不用 any, unknown（除非真的需要）
-     - 正确处理 null/undefined
+### 新建文件
+- src/modules/feature/index.ts — 模块入口
+- src/modules/feature/types.ts — 类型定义
+- src/modules/feature/service.ts — 业务逻辑
 
-  4. 安全
-     - 永不暴露密钥
-     - 输入验证
-     - SQL 注入防护（参数化查询）
-     - XSS 防护（转义用户输入）
+### 修改文件
+- src/routes/index.ts — 添加新路由
+- src/modules/index.ts — 注册新模块
+
+### 步骤
+1. 定义类型接口
+2. 实现核心逻辑
+3. 添加路由/端点
+4. 集成到现有系统
+5. lint + typecheck
 ```
 
-### 第5步: Lint 和类型检查
+**决策点**:
+```
+实现复杂度:
+├── 小功能 (1-3 文件) → 直接实现
+├── 中等功能 (4-8 文件) → 创建 TODO，逐步实现
+└── 大功能 (8+ 文件) → 发送计划给用户确认后再实现
+```
+
+---
+
+### 第4步: 实现核心逻辑
+
+**原则**:
+- 先写类型定义（接口先行）
+- 再写核心逻辑
+- 最后写胶水代码（路由、注册等）
+- 遵循现有项目的模式和约定
+- 不引入新依赖，除非必要（必要时先确认 package.json 中有）
+
+**常见实现模式**:
+
+```typescript
+// 1. 类型定义 (types.ts)
+export interface FeatureInput {
+  name: string;
+  options?: FeatureOptions;
+}
+
+export interface FeatureOutput {
+  id: string;
+  result: Result;
+}
+
+// 2. 核心逻辑 (service.ts)
+import { FeatureInput, FeatureOutput } from './types';
+
+export class FeatureService {
+  async execute(input: FeatureInput): Promise<FeatureOutput> {
+    // 实现...
+  }
+}
+
+// 3. 路由/端点 (route.ts)
+import { FeatureService } from './service';
+
+router.post('/feature', async (req, res) => {
+  const service = new FeatureService();
+  const result = await service.execute(req.body);
+  res.json(result);
+});
+```
+
+---
+
+### 第5步: 集成和连接
+
 ```bash
-# 运行 linter
+# 确保新代码被正确导入
+grep -n "import.*feature" src/
+
+# 确保路由被注册
+cat src/routes/index.ts
+
+# 确保类型导出正确
+cat src/modules/feature/index.ts
+```
+
+---
+
+### 第6步: 验证
+
+```bash
+# 1. 编译通过
+npm run build  # 或 tsc --noEmit
+
+# 2. lint 通过
 npm run lint
-# 或
-ruff check .
-# 或
-cargo clippy
 
-# 修复 lint 错误（自动修复优先）
-npm run lint -- --fix
-# 或
-ruff check . --fix
-
-# 运行类型检查
+# 3. typecheck 通过
 npm run typecheck
-# 或
-mypy src/
-# 或
-pyright
-```
 
-### 第6步: 测试
-```bash
-# 运行现有测试确保没破坏
+# 4. 现有测试没有回归
 npm test
 
-# 如有测试基础设施，为新功能写测试
-# 测试文件位置遵循项目约定:
-# - src/__tests__/
-# - src/模块名.test.ts
-# - tests/
-
-# 运行特定测试
-npm test -- --grep "新功能"
+# 5. 功能验证（如果是 API）
+npm run dev &
+curl -X POST http://localhost:3000/api/feature -d '{"name":"test"}'
 ```
+
+---
 
 ### 第7步: 创建 PR
+
 ```bash
-# 创建分支
-git checkout -b devin/$(date +%s)-feat-功能名
+git checkout -b feat/feature-name
+git add src/modules/feature/ src/routes/index.ts
+git commit -m "feat: 添加 XXX 功能
 
-# 暂存（特定文件，永不 git add .）
-git add src/新文件1.ts src/新文件2.ts src/修改的文件.ts
+- 实现了 YYY 的核心逻辑
+- 添加了 ZZZ 端点
+- 集成到现有模块系统"
 
-# 提交
-git commit -m "feat: 添加XX功能
-
-- 新增了什么
-- 修改了什么
-- 影响范围"
-
-# 推送
-git push -u origin $(git branch --show-current)
-
-# 创建 PR
-# - 描述: 高信号、简洁、解释 WHY
-# - 不重述 diff
-# - 包含预览 URL（如有）
+git push origin feat/feature-name
 ```
 
-### 第8步: 等待 CI 并修复
+**PR 描述**:
+```markdown
+## 概述
+添加了 XXX 功能，允许用户 YYY。
+
+## 实现
+- `src/modules/feature/` — 核心逻辑
+- `src/routes/` — 新增 API 端点
+
+## 使用方式
 ```bash
-# 等待 CI 检查
-# 如果失败:
-#   1. 查看失败日志
-#   2. 修复问题
-#   3. 提交并推送
-#   4. 最多重复 3 次
-#   5. 3 次后上报用户
+POST /api/feature
+Body: {"name": "example"}
+Response: {"id": "...", "result": {...}}
 ```
 
-### 第9步: 报告完成
-```
-发送给用户:
-  - PR 链接
-  - 预览部署 URL（如有）
-  - 简要总结实现方案
-  - 任何需要注意的事项
+## 验证
+- [ ] 编译通过
+- [ ] lint/typecheck 通过
+- [ ] 现有测试无回归
 ```
 
-## 决策树
-```
-收到功能请求
-├── 需求清晰? 
-│   ├── 是 → 直接规划实现
-│   └── 否 → 提问 + 同时研究代码库
-│
-├── 有类似功能已存在?
-│   ├── 是 → 参考其模式实现
-│   └── 否 → 参考最相近的代码模式
-│
-├── 需要新依赖?
-│   ├── 是 → 项目中已有? → 直接用
-│   │         └── 没有 → 确认真的需要 → npm install
-│   └── 否 → 用现有工具函数
-│
-└── 变更范围大?
-    ├── 是 → 拆分为多个小提交
-    └── 否 → 单个提交
-```
+---
+
+## 常见功能类型速查
+
+| 功能类型 | 典型文件 | 注意事项 |
+|---------|---------|---------|
+| API 端点 | route + service + types | 错误处理、输入验证 |
+| UI 组件 | component + styles + tests | 响应式、无障碍 |
+| 数据模型 | model + migration + seed | 迁移要用生成器 |
+| 后台任务 | worker + queue + config | 重试机制、幂等性 |
+| 中间件 | middleware + config | 顺序、错误传递 |
+| CLI 命令 | command + help + tests | 参数解析、帮助文档 |
