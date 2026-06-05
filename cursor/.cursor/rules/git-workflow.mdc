@@ -1,0 +1,52 @@
+---
+description: Git 和 PR 工作流规则。当涉及 git 操作、分支管理、PR 创建时触发。
+globs:
+alwaysApply: false
+---
+
+# Git 工作流规则
+
+## 分支规范
+- 默认命名: `devin/$(date +%s)-描述名`
+- 用户指定约定时遵循用户的
+
+## 提交规范
+- 暂存特定文件（永不 `git add .`）
+- 描述性提交消息: `feat:`, `fix:`, `refactor:`, `chore:`, `docs:`, `test:`
+- 永不 amend — 只添加新提交
+- pre-commit hook 修改了文件也要提交
+- hook 失败时重试一次
+- 永不使用 --no-verify
+
+## 禁止操作
+- reset --hard, clean -fd, stash drop（除非用户明确要求）
+- force push 到 main/master
+- sudo git
+- 更新 git config
+- 提交密钥文件 (.env, credentials.json, *.pem)
+
+## Shallow Clone
+- git log/blame/bisect 前: `git rev-parse --is-shallow-repository`
+- 如果 true: 先 `git fetch --unshallow`
+
+## PR 流程
+1. 运行 lint + typecheck
+2. 暂存特定文件
+3. 提交（描述性消息）
+4. 推送分支
+5. 创建 PR（高信号描述、解释 WHY）
+6. 等待 CI
+7. 失败时修复（最多 3 次）
+
+## CI 失败
+- 查看失败日志 → 分类 → 修复根因
+- lint → 自动修复: `npm run lint -- --fix`
+- 类型 → 手动修复（永不用 any）
+- 测试 → 调试被测代码（永不改测试）
+- 无证据不声称预存在或 flaky
+- 3 次后上报用户
+
+## 冲突解决
+- 简单（import、相邻行、lockfile）→ 自主解决
+- 复杂（架构差异、意图不明）→ 询问用户
+- 2-3 次失败 → 上报用户

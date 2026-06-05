@@ -1,0 +1,95 @@
+# Devin 环境蓝图模板
+# https://docs.devin.ai/onboard-devin/environment-yaml
+#
+# 定义 Devin 启动时的开发环境。
+# 从此蓝图构建的 "snapshot" 会被缓存供未来会话使用。
+#
+# 区段:
+#   initialize: 一次性设置（安装工具、全局依赖）
+#   maintenance: 保持依赖更新（每次构建时运行，呈现给 agent）
+#   knowledge: agent 参考信息（lint/test/build 命令）
+
+# --- 组织级蓝图 ---
+# 在任何仓库特定蓝图之前运行。
+# 用于所有仓库共享的工具。
+# 目标: org
+
+# --- 仓库级蓝图 ---
+# 仓库克隆后运行。
+# 用于项目特定设置。
+# 目标: repo
+
+# =============================================================================
+# 示例: 全栈 Node.js + Python 项目
+# =============================================================================
+
+initialize: |
+  # 安装系统依赖
+  sudo apt-get update && sudo apt-get install -y redis-server postgresql-client
+
+  # 通过 setup action 安装 Node.js（替代手动安装）
+  # 或使用: curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash - && sudo apt-get install -y nodejs
+
+  # 安装 Python 工具
+  curl -LsSf https://astral.sh/uv/install.sh | sh
+
+  # 安装 pre-commit
+  pip install pre-commit
+
+maintenance: |
+  # 安装 Node 依赖（增量式，不用 npm ci）
+  npm install
+
+  # 安装 Python 依赖
+  (cd backend && uv sync)
+
+  # 设置 git hooks
+  pre-commit install
+
+knowledge:
+  - name: lint
+    contents: |
+      npm run lint
+      (cd backend && ruff check .)
+  - name: test
+    contents: |
+      npm test
+      (cd backend && pytest)
+  - name: build
+    contents: |
+      npm run build
+  - name: startup
+    contents: |
+      # 启动 dev server
+      npm run dev
+      # 启动后端
+      (cd backend && uvicorn main:app --reload)
+  - name: notes
+    contents: |
+      - 使用 conventional commits
+      - PR 需要 1 个审批
+      - 合并到 main 时通过 GitHub Actions 部署
+
+# =============================================================================
+# 示例: 使用 GitHub Actions setup 步骤
+# =============================================================================
+# initialize:
+#   - uses: github.com/actions/setup-node@v4
+#     with:
+#       node-version: "20"
+#   - uses: github.com/actions/setup-python@v5
+#     with:
+#       python-version: "3.12"
+#   - run: pip install pre-commit
+
+# =============================================================================
+# 说明:
+# =============================================================================
+# - 命令从仓库根目录运行
+# - 用子 shell 处理子目录: (cd subdir && command)
+# - 环境变量: echo "KEY=VALUE" >> $ENVRC
+# - 永不直接写密钥 — 用 $VARIABLE_NAME 语法
+# - 不要在 initialize 和 maintenance 中放相同命令
+# - maintenance 应快速且增量（不用 npm ci，不用 rm -rf）
+# - initialize 在 snapshot 构建时运行一次
+# - 运行中的进程（Docker、服务器）不会在 snapshot 中持久化

@@ -1,0 +1,48 @@
+---
+description: 测试工作流规则。当编写测试、运行测试或验证功能时触发。
+globs:
+alwaysApply: false
+---
+
+# 测试规则
+
+## 测试哲学
+- 用户没指示就不主动测试
+- 用户要求验证/复现时: 始终执行
+- PR 后: 可提议端到端测试
+- 永不修改测试让它们通过
+
+## 验证命令参考
+```bash
+# 运行特定测试
+npm test -- --grep "测试名"
+pytest tests/test_file.py::test_name -v
+
+# 运行全套测试
+npm test
+pytest
+
+# Lint + 类型检查
+npm run lint
+npm run typecheck
+
+# 构建验证
+npm run build
+
+# Dev server 验证
+npm run dev
+```
+
+## 黄金路径测试清单
+- 应用启动无错误
+- 主导航可用
+- 核心 CRUD 操作正常
+- 表单正确提交
+- 认证流程可用
+- 关键 API 端点响应
+
+## 测试编写
+- 测试名: "It should ..." 格式
+- 合并相关检查为一个断言
+- 简洁 (<80 字符描述)
+- 用 "Precondition:" 验证初始状态
