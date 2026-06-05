@@ -1,0 +1,38 @@
+# Aider 忽略文件
+# 这些文件不会被 Aider 编辑或加入上下文
+
+# 依赖目录
+node_modules/
+vendor/
+.venv/
+__pycache__/
+
+# 构建输出
+dist/
+build/
+.next/
+out/
+
+# 环境和密钥
+.env
+.env.local
+.env.production
+*.pem
+*.key
+
+# IDE 配置
+.idea/
+.vscode/
+*.swp
+
+# 锁文件（不应手动编辑）
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+Cargo.lock
+poetry.lock
+
+# 生成的文件
+*.min.js
+*.min.css
+*.map

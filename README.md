@@ -1,34 +1,63 @@
-# AgentMD — 多 IDE 智能体规则配置
+# AgentX — 多 IDE 智能体规则配置
 
 > 完整的 AI 编程助手规则文件，按 IDE 分类，直接放进项目即可使用。
+> 复刻自 Devin AI 的完整工作规则。
 
-## 支持的 IDE
+## 支持的 IDE / AI 工具
 
-| 目录 | IDE | 核心文件 | 安装方式 |
-|------|-----|---------|---------|
+| 目录 | IDE / 工具 | 核心文件 | 安装方式 |
+|------|-----------|---------|---------|
 | `claude-code/` | Claude Code (Anthropic) | `CLAUDE.md` | 复制到项目根目录 |
 | `cursor/` | Cursor IDE | `.cursorrules` + `.cursor/rules/` | 复制到项目根目录 |
 | `windsurf/` | Windsurf (Cascade) | `.windsurfrules` + `.windsurf/rules/` | 复制到项目根目录 |
-| `copilot/` | GitHub Copilot / Codex | `AGENTS.md` + `.github/` | 复制到项目根目录 |
+| `copilot/` | GitHub Copilot | `AGENTS.md` + `.github/` | 复制到项目根目录 |
+| `codex/` | OpenAI Codex CLI | `AGENTS.md` | 复制到项目根目录或 `~/.codex/` |
 | `devin/` | Devin 平台 | `.devin/skills/` | 复制到仓库，git push |
+| `cline/` | Cline (VS Code) | `.clinerules/` | 复制到项目根目录 |
+| `codebuddy/` | CodeBuddy (腾讯云) | `CODEBUDDY.md` + `.codebuddy/rules/` | 复制到项目根目录 |
+| `augment/` | Augment Code | `.augment/rules/` | 复制到项目根目录 |
+| `aider/` | Aider | `.aider.conf.yml` + `CONVENTIONS.md` | 复制到项目根目录 |
+| `roo-code/` | Roo Code | `.roo/rules/` | 复制到项目根目录 |
+| `amazon-q/` | Amazon Q Developer | `.amazonq/rules/` | 复制到项目根目录 |
+| `qodo/` | Qodo (原 Qodo Gen) | `AGENTS.md` + `.qodo/agents/` | 复制到项目根目录 |
 
 ## 快速使用
 
 ```bash
 # 克隆本仓库
-git clone https://github.com/gaosichun888/agentmd.git
+git clone https://github.com/gaosichun888/agentx.git
 
 # 选择你使用的 IDE，复制对应文件到你的项目
 # 例: 使用 Cursor
-cp agentmd/cursor/.cursorrules /你的项目/
-cp -r agentmd/cursor/.cursor /你的项目/
+cp agentx/cursor/.cursorrules /你的项目/
+cp -r agentx/cursor/.cursor /你的项目/
 
 # 例: 使用 Claude Code
-cp agentmd/claude-code/CLAUDE.md /你的项目/
+cp agentx/claude-code/CLAUDE.md /你的项目/
 
-# 例: 使用 GitHub Copilot
-cp agentmd/copilot/AGENTS.md /你的项目/
-cp -r agentmd/copilot/.github /你的项目/
+# 例: 使用 OpenAI Codex
+cp agentx/codex/AGENTS.md /你的项目/
+
+# 例: 使用 Cline
+cp -r agentx/cline/.clinerules /你的项目/
+
+# 例: 使用 CodeBuddy
+cp agentx/codebuddy/CODEBUDDY.md /你的项目/
+
+# 例: 使用 Augment
+cp -r agentx/augment/.augment /你的项目/
+
+# 例: 使用 Aider
+cp agentx/aider/.aider.conf.yml agentx/aider/CONVENTIONS.md /你的项目/
+
+# 例: 使用 Roo Code
+cp -r agentx/roo-code/.roo /你的项目/
+
+# 例: 使用 Amazon Q
+cp -r agentx/amazon-q/.amazonq /你的项目/
+
+# 例: 使用 Qodo
+cp agentx/qodo/AGENTS.md /你的项目/
 ```
 
 ## 每个 IDE 包含的内容
@@ -57,6 +86,21 @@ cp -r agentmd/copilot/.github /你的项目/
 - 通信规则 (简洁、高信号)
 - 凭据管理 (三选项协议)
 - 错误处理 (分类、重试、上报)
+
+## 跨工具兼容性
+
+很多工具支持读取其他工具的规则文件:
+
+| 工具 | 原生格式 | 也支持读取 |
+|------|---------|-----------|
+| Codex | `AGENTS.md` | — |
+| Cline | `.clinerules/` | `.cursorrules`, `.windsurfrules`, `AGENTS.md` |
+| CodeBuddy | `CODEBUDDY.md` | `AGENTS.md` |
+| Augment | `.augment/rules/` | `CLAUDE.md`, `AGENTS.md` |
+| Qodo | `AGENTS.md` | — |
+| Roo Code | `.roo/rules/` | — |
+
+如果你的项目同时有多个 AI 工具使用者，可以只放一个 `AGENTS.md`，大部分工具都能识别。
 
 ## 许可
 
