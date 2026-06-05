@@ -1,0 +1,52 @@
+# =============================================================================
+# .pre-commit-config.yaml — Git Hook 配置模板
+# 安装: pip install pre-commit && pre-commit install
+# =============================================================================
+
+repos:
+  # ─── 通用检查 ───
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace        # 删除行尾空格
+      - id: end-of-file-fixer          # 确保文件以换行结束
+      - id: check-yaml                 # 验证 YAML 语法
+      - id: check-json                 # 验证 JSON 语法
+      - id: check-added-large-files    # 防止提交大文件
+        args: ['--maxkb=500']
+      - id: detect-private-key         # 检测私钥
+      - id: check-merge-conflict       # 检查合并冲突标记
+
+  # ─── 密钥扫描 ───
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.5.0
+    hooks:
+      - id: detect-secrets             # 扫描密钥泄露
+        args: ['--baseline', '.secrets.baseline']
+
+  # ─── JavaScript/TypeScript (取消注释启用) ───
+  # - repo: https://github.com/pre-commit/mirrors-eslint
+  #   rev: v9.0.0
+  #   hooks:
+  #     - id: eslint
+  #       files: \.[jt]sx?$
+  #       additional_dependencies:
+  #         - eslint@9
+  #         - typescript
+
+  # ─── Python (取消注释启用) ───
+  # - repo: https://github.com/astral-sh/ruff-pre-commit
+  #   rev: v0.4.0
+  #   hooks:
+  #     - id: ruff
+  #       args: [--fix]
+  #     - id: ruff-format
+
+  # ─── Rust (取消注释启用) ───
+  # - repo: local
+  #   hooks:
+  #     - id: cargo-fmt
+  #       name: cargo fmt
+  #       entry: cargo fmt --
+  #       language: system
+  #       types: [rust]

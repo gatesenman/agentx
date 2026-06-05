@@ -1,0 +1,33 @@
+---
+description: 仓库设置和环境配置规则。当初始化项目、安装依赖或配置开发环境时触发。
+globs:
+alwaysApply: false
+---
+
+# 仓库设置规则
+
+## 设置流程
+1. 阅读 README.md, CONTRIBUTING.md, 设置指南
+2. 创建设置计划，发送给用户（非阻塞）
+3. 按 README 精确指令安装（版本、工具都要匹配）
+4. 如有 .pre-commit-config.yaml → `pre-commit install`
+5. 运行构建
+6. 运行测试
+7. 验证 dev server 启动
+
+## 自动检测项目类型
+```bash
+# 参考 scripts/setup-project.sh
+# 根据以下文件判断:
+# package.json → Node.js (npm/yarn/pnpm/bun)
+# pyproject.toml / requirements.txt → Python (uv/pip/pipenv)
+# Cargo.toml → Rust
+# go.mod → Go
+```
+
+## 原则
+- 严格按 README（精确版本、精确工具，如 Volta 不换 nvm）
+- 不修改仓库代码修设置问题（除非最后手段）
+- 被迫偏离 README 时通知用户
+- 遇到登录/认证问题立即上报
+- 尝试完整运行: 依赖 → 构建 → 测试 → dev server

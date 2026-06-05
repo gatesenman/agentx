@@ -1,0 +1,122 @@
+{
+  "说明": "这是展示 Devin 使用工具的 MCP 配置参考。并非所有工具都基于 MCP — 许多是内建平台工具。",
+  "devin_mcp_server": {
+    "描述": "Devin 的远程 MCP 服务器，用于会话/知识/playbook 管理",
+    "端点": "https://api.devin.ai (内部)",
+    "工具": [
+      {
+        "name": "read_wiki_structure",
+        "描述": "获取 GitHub 仓库的文档主题",
+        "参数": {"repoName": "owner/repo"}
+      },
+      {
+        "name": "read_wiki_contents",
+        "描述": "查看仓库的文档",
+        "参数": {"repoName": "owner/repo"}
+      },
+      {
+        "name": "ask_question",
+        "描述": "对仓库进行 AI 驱动的问答",
+        "参数": {"repoName": "owner/repo", "question": "string"}
+      },
+      {
+        "name": "list_available_repos",
+        "描述": "列出所有可查询的仓库"
+      },
+      {
+        "name": "generate_wiki",
+        "描述": "为仓库生成代码库 wiki",
+        "参数": {"repoName": "owner/repo"}
+      },
+      {
+        "name": "devin_session_create",
+        "描述": "创建子 Devin 会话",
+        "参数": {
+          "prompt": "任务描述",
+          "repo": "owner/repo (可选)",
+          "count": "会话数量 (可选, 默认 1)",
+          "playbook_id": "可选 playbook ID",
+          "tags": "可选标签数组"
+        }
+      },
+      {
+        "name": "devin_session_interact",
+        "描述": "与 Devin 会话交互",
+        "参数": {
+          "action": "get|message|sleep|terminate|archive|get_messages|get_attachments|set_tags",
+          "session_id": "devin-<uuid>",
+          "message": "消息文本 (用于 message 操作)"
+        }
+      },
+      {
+        "name": "devin_session_search",
+        "描述": "搜索和过滤会话",
+        "参数": {
+          "status": "running|blocked|exit",
+          "tags": "按标签过滤",
+          "created_after": "ISO 日期时间",
+          "created_before": "ISO 日期时间"
+        }
+      },
+      {
+        "name": "devin_session_gather",
+        "描述": "等待多个会话完成",
+        "参数": {"session_ids": ["devin-<uuid>"]}
+      },
+      {
+        "name": "devin_session_events",
+        "描述": "检查会话事件",
+        "参数": {
+          "action": "list|details|search",
+          "session_id": "devin-<uuid>"
+        }
+      },
+      {
+        "name": "devin_knowledge_manage",
+        "描述": "知识笔记的增删改查",
+        "参数": {
+          "action": "list|get|create|update|delete|folders",
+          "note_id": "note-<uuid>",
+          "name": "笔记名称",
+          "content": "笔记内容",
+          "trigger": "何时呈现该笔记"
+        }
+      },
+      {
+        "name": "devin_playbook_manage",
+        "描述": "Playbook 的增删改查",
+        "参数": {
+          "action": "list|get|create|update|delete",
+          "playbook_id": "playbook-<uuid>",
+          "title": "playbook 标题",
+          "steps": "playbook 步骤内容"
+        }
+      },
+      {
+        "name": "devin_schedule_manage",
+        "描述": "管理定时会话",
+        "参数": {
+          "action": "list|get|create|update|delete",
+          "schedule_id": "schedule-<uuid>",
+          "cron": "cron 表达式",
+          "prompt": "会话提示词",
+          "repo": "owner/repo"
+        }
+      },
+      {
+        "name": "list_integrations",
+        "描述": "列出所有集成和 MCP 服务器"
+      }
+    ]
+  },
+  "devin_docs_mcp": {
+    "描述": "搜索 Devin 文档",
+    "工具": [
+      {
+        "name": "search_devin_docs",
+        "描述": "搜索文档",
+        "参数": {"query": "搜索查询"}
+      }
+    ]
+  }
+}
