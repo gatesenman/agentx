@@ -1,0 +1,98 @@
+# =============================================================================
+# Devin 环境蓝图模板 (environment.yaml)
+# 放在仓库根目录的 .devin/ 下，或通过 Devin 平台设置
+# https://docs.devin.ai/onboard-devin/environment-yaml
+# =============================================================================
+#
+# 三个区段:
+#   initialize: 一次性设置（构建 snapshot 时运行一次）
+#     - 安装系统级工具、运行时
+#     - 只有文件系统变更持久化
+#     - 运行中的进程（Docker、服务器）不持久
+#     - 命令必须幂等
+#
+#   maintenance: 保持依赖更新（每次 snapshot 构建时运行）
+#     - 会话启动时作为上下文呈现给 agent
+#     - 必须快速且增量（不用 npm ci，不用 rm -rf）
+#     - 只放依赖安装命令，不放构建命令
+#
+#   knowledge: agent 参考信息
+#     - name + contents 格式
+#     - 常用项: lint, test, build, startup, notes
+#
+# 规则:
+#   - 不要在 initialize 和 maintenance 中放相同命令
+#   - 永不直接写密钥 — 用 $VARIABLE_NAME 引用
+#   - 命令从仓库根目录运行
+#   - 子目录用子 shell: (cd subdir && command)
+#   - 环境变量: echo "KEY=VALUE" >> $ENVRC
+# =============================================================================
+
+# --- 选项1: 简单字符串格式 ---
+
+initialize: |
+  # 安装系统依赖
+  sudo apt-get update && sudo apt-get install -y redis-server postgresql-client
+
+  # 安装 Python 工具链
+  curl -LsSf https://astral.sh/uv/install.sh | sh
+
+  # 安装 pre-commit
+  pip install pre-commit
+
+maintenance: |
+  # 安装 Node 依赖（增量式）
+  npm install
+
+  # 安装 Python 依赖
+  (cd backend && uv sync)
+
+  # 设置 git hooks
+  pre-commit install
+
+knowledge:
+  - name: lint
+    contents: |
+      npm run lint
+      (cd backend && ruff check .)
+
+  - name: test
+    contents: |
+      npm test
+      (cd backend && pytest)
+
+  - name: build
+    contents: |
+      npm run build
+
+  - name: startup
+    contents: |
+      # 启动前端 dev server
+      npm run dev
+      # 启动后端
+      (cd backend && uvicorn main:app --reload)
+
+  - name: notes
+    contents: |
+      - 使用 conventional commits
+      - PR 需要 1 个审批
+      - 合并到 main 时通过 GitHub Actions 部署
+      - 测试账号: test@example.com (密码见 $TEST_PASSWORD)
+
+# --- 选项2: 命名步骤格式（可选） ---
+
+# initialize:
+#   - name: 安装 Node.js
+#     uses: github.com/actions/setup-node@v4
+#     with:
+#       node-version: "20"
+#
+#   - name: 安装 Python
+#     uses: github.com/actions/setup-python@v5
+#     with:
+#       python-version: "3.12"
+#
+#   - name: 安装工具
+#     run: |
+#       pip install pre-commit
+#       npm install -g turbo

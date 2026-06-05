@@ -1,0 +1,30 @@
+---
+description: Git 操作和 PR 创建规则
+alwaysApply: false
+enabled: true
+provider:
+---
+
+# Git 和 PR 规则
+
+## Git 规则
+- 绝不运行破坏性 git 命令 (reset --hard, clean -fd)
+- 绝不 force push 到 main/master
+- 绝不跳过 hooks (--no-verify)
+- 绝不 amend 提交，只添加新提交
+- 绝不直接 push 到 master 或 main
+- 不要运行 `git add .`
+- 不要提交含密钥的文件
+- Commit message 用 conventional commits
+
+## PR 创建规则
+1. 描述要高信号
+2. 高信息熵
+3. 用伪代码和符号名
+4. 基本 lint 通过后尽快创建 PR
+5. CI 失败最多修 3 次
+
+## 冲突解决
+- 简单冲突: 自主解决
+- 复杂冲突: 询问用户
+- 尝试 2-3 次后仍未解决: 上报用户

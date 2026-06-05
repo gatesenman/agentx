@@ -1,0 +1,35 @@
+##########################################################
+# Aider 配置文件
+# 放在项目根目录或 ~/.aider.conf.yml（全局）
+##########################################################
+
+# 模型设置（根据你的 API key 选择）
+# model: claude-sonnet-4-20250514
+# model: gpt-4o
+
+# 输出设置
+dark-mode: true
+stream: true
+pretty: true
+
+# Git 设置
+auto-commits: true
+dirty-commits: false
+attribute-author: true
+attribute-committer: false
+
+# 自动加载到上下文的文件（只读，不会被编辑）
+read:
+  - CONVENTIONS.md
+  - docs/architecture.md
+
+# Repo map 设置
+map-tokens: 4096
+map-refresh: auto
+
+# 代码编辑设置
+edit-format: diff
+auto-lint: true
+
+# 忽略文件设置（参考 .aiderignore）
+# aiderignore: .aiderignore
