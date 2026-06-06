@@ -21,7 +21,7 @@ attribute-committer: false
 # 自动加载到上下文的文件（只读，不会被编辑）
 read:
   - CONVENTIONS.md
-  - docs/architecture.md
+  # - docs/architecture.md  # 取消注释并替换为你项目的架构文档路径
 
 # Repo map 设置
 map-tokens: 4096
@@ -31,5 +31,5 @@ map-refresh: auto
 edit-format: diff
 auto-lint: true
 
-# 忽略文件设置（参考 .aiderignore）
-# aiderignore: .aiderignore
+# 忽略文件设置
+aiderignore: .aiderignore
