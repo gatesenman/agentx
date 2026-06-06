@@ -1,65 +1,79 @@
-# Devin 平台智能体完整配置包
+# Devin 平台 — 智能体完整配置
+
+> 规则格式: `.devin/skills/*.md`
 
 ## 快速安装
 
 ```bash
-# 1. 解压
-unzip devin-agent.zip
+# 复制技能文件到仓库
+cp -r .devin/ /你的项目/
 
-# 2. 复制 .devin/ 到仓库
-cp -r devin-agent/.devin/ /你的仓库/
+# 复制参考文件（推荐）
+cp -r workflows/ hooks/ scripts/ templates/ /你的项目/.agent/
+cp *.md /你的项目/.agent/
 
-# 3. 复制参考文件
-mkdir -p /你的仓库/.agent
-cp -r devin-agent/workflows /你的仓库/.agent/
-cp -r devin-agent/scripts /你的仓库/.agent/
-cp -r devin-agent/hooks /你的仓库/.agent/
-cp -r devin-agent/templates /你的仓库/.agent/
-cp devin-agent/DECISION-TREES.md /你的仓库/.agent/
-cp devin-agent/MCP-TOOLS-REFERENCE.md /你的仓库/.agent/
-cp devin-agent/AUTOMATIONS-REFERENCE.md /你的仓库/.agent/
+# 推送到远程仓库
+cd /你的项目 && git add .devin/ && git commit -m "chore: add Devin skills" && git push
 
-# 4. 复制自动化和环境配置参考
-cp -r devin-agent/automations /你的仓库/.agent/
-cp -r devin-agent/knowledge /你的仓库/.agent/
-cp -r devin-agent/environment /你的仓库/.agent/
-cp -r devin-agent/mcp /你的仓库/.agent/
-
-# 5. 提交到 Git
-cd /你的仓库
-git add .devin/ .agent/
-git commit -m "chore: 添加 Devin 智能体配置"
-git push
-
-# 6. 安装 Git hooks（可选）
-bash .agent/hooks/git-hooks-setup.sh
+# 安装 Git hooks（可选）
+bash hooks/install-hooks.sh
 ```
 
-## 文件清单
+## 文件结构
 
 ```
-devin-agent/
-├── .devin/skills/                         # 8 个 Devin 技能（自动发现）
-│   ├── pr-workflow/SKILL.md              #   PR 创建工作流
-│   ├── repo-setup/SKILL.md              #   仓库设置工作流
-│   ├── testing/SKILL.md                 #   测试与录屏
-│   ├── debugging/SKILL.md               #   调试工作流
-│   ├── code-review/SKILL.md             #   代码审查响应
-│   ├── deployment/SKILL.md              #   部署工作流
-│   ├── child-sessions/SKILL.md          #   子会话管理
-│   └── data-analysis/SKILL.md           #   数据分析
-├── README.md
+devin/
 │
-├── workflows/                             # 4 个完整工作流
-├── scripts/                               # 3 个可运行脚本
-├── hooks/                                 # Git hooks 安装
-├── templates/                             # 4 个配置模板
-├── automations/                           # 自动化配置参考
-├── knowledge/                             # 知识库配置参考
-├── environment/                           # 环境蓝图参考
-├── mcp/                                   # MCP 工具配置参考
+│  ── 核心规则 ──
+├── .devin/skills/
+│   ├── pr-workflow/SKILL.md              #   PR 工作流
+│   ├── repo-setup/SKILL.md               #   仓库设置
+│   ├── testing/SKILL.md                  #   测试
+│   ├── debugging/SKILL.md                #   调试
+│   ├── code-review/SKILL.md              #   代码审查
+│   ├── deployment/SKILL.md               #   部署
+│   ├── child-sessions/SKILL.md           #   子会话管理
+│   └── data-analysis/SKILL.md            #   数据分析
 │
-├── DECISION-TREES.md                      # 7 类决策树
-├── MCP-TOOLS-REFERENCE.md                 # 50+ 工具参考
-└── AUTOMATIONS-REFERENCE.md               # 自动化和 Hook 参考
+│  ── 参考文档 ──
+├── MCP-TOOLS-REFERENCE.md                 # 50+ 工具完整参考
+├── MEMORY-SYSTEM.md                       # 7 层记忆架构
+├── SKILLS-REFERENCE.md                    # 技能系统参考
+├── DECISION-TREES.md                      # 10 类决策树
+├── AUTOMATIONS-REFERENCE.md               # 自动化/Hook 配置
+├── TROUBLESHOOTING.md                     # 常见问题排查
+├── PROMPT-PATTERNS.md                     # 提示词模式
+├── TOOL-CHAINS.md                         # 工具链编排
+│
+│  ── 工作流 ──
+├── workflows/
+│   ├── PLAYBOOK-bug-fix.md               #   Bug 修复
+│   ├── PLAYBOOK-feature-implementation.md #   功能实现
+│   ├── PLAYBOOK-ci-fix.md                #   CI 修复
+│   └── PLAYBOOK-refactoring.md           #   重构
+│
+│  ── Git Hooks ──
+├── hooks/
+│   ├── pre-commit                        #   密钥检测 + lint
+│   ├── commit-msg                        #   Conventional Commits
+│   ├── pre-push                          #   分支保护 + 测试
+│   └── install-hooks.sh                  #   一键安装
+│
+│  ── 脚本 ──
+├── scripts/
+│   ├── setup-project.sh                  #   项目自动设置
+│   └── verify-no-secrets.sh              #   密钥扫描
+│
+│  ── 模板 ──
+├── templates/
+│   ├── environment.yaml                  #   环境蓝图
+│   ├── pr-template.md                    #   PR 描述
+│   ├── pre-commit-config.yaml            #   pre-commit 配置
+│   └── gitignore.template                #   .gitignore
+│
+└── README.md
 ```
+
+## 零外部依赖
+
+所有引用的脚本、模板、配置均已包含。无需额外下载。
