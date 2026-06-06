@@ -253,7 +253,7 @@ echo "✅ Tests passed, pushing..."
 ### Git Hooks 安装脚本
 ```bash
 #!/bin/bash
-# scripts/install-hooks.sh
+# hooks/install-hooks.sh
 # 一键安装所有 git hooks
 
 HOOKS_DIR=".git/hooks"

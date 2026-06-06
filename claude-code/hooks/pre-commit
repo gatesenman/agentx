@@ -3,7 +3,7 @@
 # pre-commit hook — 提交前自动检查
 # ===========================================================
 # 安装: cp hooks/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit
-# 或运行: scripts/install-hooks.sh
+# 或运行: hooks/install-hooks.sh
 # ===========================================================
 
 set -e
