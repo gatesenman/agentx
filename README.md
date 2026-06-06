@@ -82,7 +82,7 @@ cd /你的项目 && bash agentx/claude-code/hooks/install-hooks.sh
 │   ├── environment.yaml                  #   Devin 环境蓝图模板
 │   ├── pr-template.md                    #   PR 描述模板
 │   ├── pre-commit-config.yaml            #   .pre-commit-config.yaml 模板
-│   └── gitignore-template                #   .gitignore 安全模板
+│   └── gitignore.template                #   .gitignore 安全模板
 │
 ├── MCP-TOOLS-REFERENCE.md                 # 50+ 工具完整参考 (445行)
 ├── MEMORY-SYSTEM.md                       # 7层记忆架构参考 (303行)
