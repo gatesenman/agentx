@@ -1,68 +1,75 @@
-# Cursor 智能体完整配置包
+# Cursor IDE — 智能体完整配置
+
+> 规则格式: `.cursorrules + .cursor/rules/*.mdc`
 
 ## 快速安装
 
 ```bash
-# 1. 解压
-unzip cursor-agent.zip
+# 复制核心规则到项目根目录
+cp .cursorrules /你的项目/
+cp -r .cursor/ /你的项目/
 
-# 2. 复制到项目
-cp cursor-agent/.cursorrules /你的项目/
-cp -r cursor-agent/.cursor/ /你的项目/
+# 复制参考文件（推荐）
+cp -r workflows/ hooks/ scripts/ templates/ /你的项目/.agent/
+cp *.md /你的项目/.agent/
 
-# 3. 复制参考文件
-mkdir -p /你的项目/.agent
-cp -r cursor-agent/workflows /你的项目/.agent/
-cp -r cursor-agent/scripts /你的项目/.agent/
-cp -r cursor-agent/hooks /你的项目/.agent/
-cp -r cursor-agent/templates /你的项目/.agent/
-cp cursor-agent/DECISION-TREES.md /你的项目/.agent/
-cp cursor-agent/MCP-TOOLS-REFERENCE.md /你的项目/.agent/
-cp cursor-agent/AUTOMATIONS-REFERENCE.md /你的项目/.agent/
-
-# 4. 安装 Git hooks（可选）
-cd /你的项目 && bash .agent/hooks/git-hooks-setup.sh
+# 安装 Git hooks（可选）
+bash hooks/install-hooks.sh
 ```
 
-## 文件清单
+## 文件结构
 
 ```
-cursor-agent/
-├── .cursorrules                           # 主规则文件（Cursor 自动加载）
-├── .cursor/rules/                         # 上下文规则
+cursor/
+│
+│  ── 核心规则 ──
+├── .cursorrules                           # 全局规则（自动加载）
+├── .cursor/rules/
 │   ├── code-quality.mdc                  #   代码质量（alwaysApply: true）
+│   ├── debugging.mdc                     #   调试（按场景触发）
 │   ├── git-workflow.mdc                  #   Git/PR 工作流
-│   ├── debugging.mdc                     #   调试规则
-│   ├── repo-setup.mdc                    #   仓库设置规则
-│   └── testing.mdc                       #   测试规则
-├── README.md
+│   ├── repo-setup.mdc                    #   仓库设置
+│   └── testing.mdc                       #   测试
 │
-├── workflows/                             # 4 个完整工作流
-│   ├── PLAYBOOK-bug-fix.md
-│   ├── PLAYBOOK-feature-implementation.md
-│   ├── PLAYBOOK-refactoring.md
-│   └── PLAYBOOK-ci-fix.md
-├── scripts/                               # 3 个可运行脚本
-│   ├── setup-project.sh
-│   ├── pre-commit-check.sh
-│   └── verify-no-secrets.sh
-├── hooks/                                 # Git hooks 安装
-│   └── git-hooks-setup.sh
-├── templates/                             # 4 个配置模板
-│   ├── environment.yaml
-│   ├── pr-template.md
-│   ├── pre-commit-config.yaml
-│   └── gitignore-template
+│  ── 参考文档 ──
+├── MCP-TOOLS-REFERENCE.md                 # 50+ 工具完整参考
+├── MEMORY-SYSTEM.md                       # 7 层记忆架构
+├── SKILLS-REFERENCE.md                    # 技能系统参考
+├── DECISION-TREES.md                      # 10 类决策树
+├── AUTOMATIONS-REFERENCE.md               # 自动化/Hook 配置
+├── TROUBLESHOOTING.md                     # 常见问题排查
+├── PROMPT-PATTERNS.md                     # 提示词模式
+├── TOOL-CHAINS.md                         # 工具链编排
 │
-├── DECISION-TREES.md                      # 7 类决策树
-├── MCP-TOOLS-REFERENCE.md                 # 50+ 工具参考
-└── AUTOMATIONS-REFERENCE.md               # 自动化配置参考
+│  ── 工作流 ──
+├── workflows/
+│   ├── PLAYBOOK-bug-fix.md               #   Bug 修复
+│   ├── PLAYBOOK-feature-implementation.md #   功能实现
+│   ├── PLAYBOOK-ci-fix.md                #   CI 修复
+│   └── PLAYBOOK-refactoring.md           #   重构
+│
+│  ── Git Hooks ──
+├── hooks/
+│   ├── pre-commit                        #   密钥检测 + lint
+│   ├── commit-msg                        #   Conventional Commits
+│   ├── pre-push                          #   分支保护 + 测试
+│   └── install-hooks.sh                  #   一键安装
+│
+│  ── 脚本 ──
+├── scripts/
+│   ├── setup-project.sh                  #   项目自动设置
+│   └── verify-no-secrets.sh              #   密钥扫描
+│
+│  ── 模板 ──
+├── templates/
+│   ├── environment.yaml                  #   环境蓝图
+│   ├── pr-template.md                    #   PR 描述
+│   ├── pre-commit-config.yaml            #   pre-commit 配置
+│   └── gitignore.template                #   .gitignore
+│
+└── README.md
 ```
 
-## Cursor 规则加载机制
+## 零外部依赖
 
-- `.cursorrules` — 全局规则，启动时自动加载
-- `.cursor/rules/*.mdc` — 上下文规则:
-  - `alwaysApply: true` → 始终生效（如 code-quality）
-  - `alwaysApply: false` → 匹配 description 时触发（如 debugging、testing）
-  - `globs: ["**/*.py"]` → 匹配文件类型时触发
+所有引用的脚本、模板、配置均已包含。无需额外下载。

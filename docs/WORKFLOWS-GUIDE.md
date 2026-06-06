@@ -335,19 +335,21 @@ chmod +x scripts/setup-project.sh
 # 4. 尝试构建项目
 ```
 
-### scripts/pre-commit-check.sh
+### hooks/pre-commit
 
-**用途**: 提交前自动检查
+**用途**: 提交前自动检查（通过 Git hook 自动调用）
 
 ```bash
-# 通常通过 git hook 自动调用
+# 通过 install-hooks.sh 安装后自动运行
 # 也可手动运行:
-./scripts/pre-commit-check.sh
+./hooks/pre-commit
 
 # 它会检查:
-# 1. 是否有敏感文件 (.env, *.pem, credentials.json)
-# 2. 运行 lint（如有配置）
-# 3. 运行 typecheck（如有配置）
+# 1. 密钥检测 (AWS Key, API Key, GitHub Token 等)
+# 2. 禁止提交敏感文件 (.env, *.pem, credentials.json)
+# 3. 大文件检查 (>5MB 警告)
+# 4. 运行 lint（如有配置）
+# 5. 运行 typecheck（如有配置）
 ```
 
 ### scripts/verify-no-secrets.sh
@@ -369,13 +371,13 @@ chmod +x scripts/setup-project.sh
 
 ## Git Hooks 说明
 
-### hooks/git-hooks-setup.sh
+### hooks/install-hooks.sh
 
 **用途**: 一键安装 Git hooks
 
 ```bash
-chmod +x hooks/git-hooks-setup.sh
-./hooks/git-hooks-setup.sh
+chmod +x hooks/install-hooks.sh
+./hooks/install-hooks.sh
 
 # 安装以下 hooks:
 ```

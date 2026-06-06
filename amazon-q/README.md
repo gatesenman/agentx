@@ -1,37 +1,70 @@
-# Amazon Q Developer 智能体配置
+# Amazon Q Developer — 智能体完整配置
 
-## 安装方法
+> 规则格式: `.amazonq/rules/*.md`
+
+## 快速安装
 
 ```bash
-# 复制规则目录到项目根
-cp -r .amazonq /你的项目/
+# 复制核心规则到项目根目录
+cp -r .amazonq/ /你的项目/
+
+# 复制参考文件（推荐）
+cp -r workflows/ hooks/ scripts/ templates/ /你的项目/.agent/
+cp *.md /你的项目/.agent/
+
+# 安装 Git hooks（可选）
+bash hooks/install-hooks.sh
 ```
 
-## 文件说明
+## 文件结构
 
-| 文件 | 用途 |
-|------|------|
-| `.amazonq/rules/01-core-rules.md` | 核心工作规则 |
-| `.amazonq/rules/02-git-workflow.md` | Git 和 PR 规则 |
-| `workflows/` | 工作流模板 |
-| `scripts/` | 可运行脚本 |
-| `hooks/` | Git hooks |
-| `templates/` | 配置模板 |
+```
+amazon-q/
+│
+│  ── 核心规则 ──
+├── .amazonq/rules/
+│   ├── 01-core-rules.md                  #   核心规则
+│   └── 02-git-workflow.md                #   Git 工作流
+│
+│  ── 参考文档 ──
+├── MCP-TOOLS-REFERENCE.md                 # 50+ 工具完整参考
+├── MEMORY-SYSTEM.md                       # 7 层记忆架构
+├── SKILLS-REFERENCE.md                    # 技能系统参考
+├── DECISION-TREES.md                      # 10 类决策树
+├── AUTOMATIONS-REFERENCE.md               # 自动化/Hook 配置
+├── TROUBLESHOOTING.md                     # 常见问题排查
+├── PROMPT-PATTERNS.md                     # 提示词模式
+├── TOOL-CHAINS.md                         # 工具链编排
+│
+│  ── 工作流 ──
+├── workflows/
+│   ├── PLAYBOOK-bug-fix.md               #   Bug 修复
+│   ├── PLAYBOOK-feature-implementation.md #   功能实现
+│   ├── PLAYBOOK-ci-fix.md                #   CI 修复
+│   └── PLAYBOOK-refactoring.md           #   重构
+│
+│  ── Git Hooks ──
+├── hooks/
+│   ├── pre-commit                        #   密钥检测 + lint
+│   ├── commit-msg                        #   Conventional Commits
+│   ├── pre-push                          #   分支保护 + 测试
+│   └── install-hooks.sh                  #   一键安装
+│
+│  ── 脚本 ──
+├── scripts/
+│   ├── setup-project.sh                  #   项目自动设置
+│   └── verify-no-secrets.sh              #   密钥扫描
+│
+│  ── 模板 ──
+├── templates/
+│   ├── environment.yaml                  #   环境蓝图
+│   ├── pr-template.md                    #   PR 描述
+│   ├── pre-commit-config.yaml            #   pre-commit 配置
+│   └── gitignore.template                #   .gitignore
+│
+└── README.md
+```
 
-## Amazon Q 规则格式
+## 零外部依赖
 
-### 项目规则
-- 放在 `{{project-root}}/.amazonq/rules/` 目录
-- 必须是 Markdown 文件 (`.md`)
-- 自动作为上下文加载到所有对话
-- 可以创建多个规则文件
-
-### 创建方式
-1. 直接在文件系统创建文件
-2. 或通过 Amazon Q 聊天界面创建
-
-### 最佳实践
-- 每个规则文件聚焦一个主题
-- 用清晰的标题和结构
-- 包含具体的命令示例
-- 规则文件可以随项目版本控制
+所有引用的脚本、模板、配置均已包含。无需额外下载。
