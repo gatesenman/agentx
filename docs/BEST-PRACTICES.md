@@ -273,8 +273,8 @@ git commit -m "chore: 更新 AI 编程规则"
 
 使用本仓库提供的 hooks:
 ```bash
-./hooks/git-hooks-setup.sh
-# 安装 pre-commit hook，自动检查敏感文件
+./hooks/install-hooks.sh
+# 安装 pre-commit/commit-msg/pre-push hooks
 ```
 
 ### 3. 配合 CI 检查

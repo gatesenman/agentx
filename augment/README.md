@@ -1,50 +1,70 @@
-# Augment Code 智能体配置
+# Augment Code — 智能体完整配置
 
-## 安装方法
+> 规则格式: `.augment/rules/*.md`
 
-### 工作区规则（项目级）
+## 快速安装
+
 ```bash
-cp -r .augment /你的项目/
+# 复制核心规则到项目根目录
+cp -r .augment/ /你的项目/
+
+# 复制参考文件（推荐）
+cp -r workflows/ hooks/ scripts/ templates/ /你的项目/.agent/
+cp *.md /你的项目/.agent/
+
+# 安装 Git hooks（可选）
+bash hooks/install-hooks.sh
 ```
 
-### 用户规则（全局）
-```bash
-cp .augment/rules/*.md ~/.augment/rules/
-```
-
-## 文件说明
-
-| 文件 | 用途 |
-|------|------|
-| `.augment/rules/01-core-rules.md` | 核心规则 (always_apply) |
-| `.augment/rules/02-git-workflow.md` | Git 规则 (agent_requested) |
-| `workflows/` | 工作流模板 |
-| `scripts/` | 可运行脚本 |
-| `hooks/` | Git hooks |
-| `templates/` | 配置模板 |
-
-## Augment 规则类型
-
-| 类型 | frontmatter | 行为 |
-|------|-------------|------|
-| Always | `rule_type: always_apply` | 每次对话都加载 |
-| Auto | `rule_type: agent_requested` | Agent 根据 description 自动判断是否需要 |
-| Manual | `rule_type: manual` | 需要用 @ 手动附加（仅 IDE） |
-
-## 兼容性
-
-Augment 也自动检测:
-- `CLAUDE.md` (Claude Code 格式)
-- `AGENTS.md` (跨工具标准格式)
-- `.augment-guidelines` (旧格式)
-
-## 优先级
+## 文件结构
 
 ```
---rules 参数指定     (最高)
-CLAUDE.md
-AGENTS.md
-.augment-guidelines
-.augment/rules/     (工作区)
-~/.augment/rules/   (用户全局，最低)
+augment/
+│
+│  ── 核心规则 ──
+├── .augment/rules/
+│   ├── 01-core-rules.md                  #   核心规则（YAML frontmatter）
+│   └── 02-git-workflow.md                #   Git 工作流
+│
+│  ── 参考文档 ──
+├── MCP-TOOLS-REFERENCE.md                 # 50+ 工具完整参考
+├── MEMORY-SYSTEM.md                       # 7 层记忆架构
+├── SKILLS-REFERENCE.md                    # 技能系统参考
+├── DECISION-TREES.md                      # 10 类决策树
+├── AUTOMATIONS-REFERENCE.md               # 自动化/Hook 配置
+├── TROUBLESHOOTING.md                     # 常见问题排查
+├── PROMPT-PATTERNS.md                     # 提示词模式
+├── TOOL-CHAINS.md                         # 工具链编排
+│
+│  ── 工作流 ──
+├── workflows/
+│   ├── PLAYBOOK-bug-fix.md               #   Bug 修复
+│   ├── PLAYBOOK-feature-implementation.md #   功能实现
+│   ├── PLAYBOOK-ci-fix.md                #   CI 修复
+│   └── PLAYBOOK-refactoring.md           #   重构
+│
+│  ── Git Hooks ──
+├── hooks/
+│   ├── pre-commit                        #   密钥检测 + lint
+│   ├── commit-msg                        #   Conventional Commits
+│   ├── pre-push                          #   分支保护 + 测试
+│   └── install-hooks.sh                  #   一键安装
+│
+│  ── 脚本 ──
+├── scripts/
+│   ├── setup-project.sh                  #   项目自动设置
+│   └── verify-no-secrets.sh              #   密钥扫描
+│
+│  ── 模板 ──
+├── templates/
+│   ├── environment.yaml                  #   环境蓝图
+│   ├── pr-template.md                    #   PR 描述
+│   ├── pre-commit-config.yaml            #   pre-commit 配置
+│   └── gitignore.template                #   .gitignore
+│
+└── README.md
 ```
+
+## 零外部依赖
+
+所有引用的脚本、模板、配置均已包含。无需额外下载。

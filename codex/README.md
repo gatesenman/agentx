@@ -1,49 +1,71 @@
-# OpenAI Codex CLI 智能体配置
+# OpenAI Codex CLI — 智能体完整配置
 
-## 安装方法
+> 规则格式: `AGENTS.md`
 
-### 项目级（团队共享）
+## 快速安装
+
 ```bash
+# 方式1: 项目级（推荐）
 cp AGENTS.md /你的项目/
+
+# 方式2: 全局（所有项目生效）
+mkdir -p ~/.codex && cp AGENTS.md ~/.codex/
+
+# 复制参考文件（推荐）
+cp -r workflows/ hooks/ scripts/ templates/ /你的项目/.agent/
+cp *.md /你的项目/.agent/
+
+# 安装 Git hooks（可选）
+bash hooks/install-hooks.sh
 ```
 
-### 全局级（个人偏好）
-```bash
-mkdir -p ~/.codex
-cp AGENTS.md ~/.codex/
-```
-
-### 临时覆盖
-```bash
-cp AGENTS.md ~/.codex/AGENTS.override.md
-# 用完后删除即可恢复
-```
-
-## 文件说明
-
-| 文件 | 用途 |
-|------|------|
-| `AGENTS.md` | 核心规则文件，Codex 启动时自动加载 |
-| `workflows/` | 4 个工作流模板（bug修复/功能实现/重构/CI修复） |
-| `scripts/` | 3 个可运行脚本（项目设置/提交检查/密钥扫描） |
-| `hooks/` | Git hooks 一键安装脚本 |
-| `templates/` | 配置模板（环境蓝图/PR模板/pre-commit/gitignore） |
-| `DECISION-TREES.md` | 7 类完整决策树 |
-| `MCP-TOOLS-REFERENCE.md` | 工具完整参考 |
-| `AUTOMATIONS-REFERENCE.md` | 自动化和 Hook 参考 |
-
-## 与其他 Codex 功能配合
-
-- **Memory**: Codex 自动记住你的修正和偏好
-- **Skills**: 封装可复用的多步骤流程
-- **MCP**: 连接外部工具（GitHub、Linear、Slack 等）
-- **Subagents**: 委托子任务给专门的子智能体
-
-## 优先级顺序
+## 文件结构
 
 ```
-~/.codex/AGENTS.override.md  (最高)
-~/.codex/AGENTS.md
-项目根/AGENTS.md
-子目录/AGENTS.md              (按路径深度叠加)
+codex/
+│
+│  ── 核心规则 ──
+├── AGENTS.md                              # 主规则（Codex 自动加载）
+│
+│  ── 参考文档 ──
+├── MCP-TOOLS-REFERENCE.md                 # 50+ 工具完整参考
+├── MEMORY-SYSTEM.md                       # 7 层记忆架构
+├── SKILLS-REFERENCE.md                    # 技能系统参考
+├── DECISION-TREES.md                      # 10 类决策树
+├── AUTOMATIONS-REFERENCE.md               # 自动化/Hook 配置
+├── TROUBLESHOOTING.md                     # 常见问题排查
+├── PROMPT-PATTERNS.md                     # 提示词模式
+├── TOOL-CHAINS.md                         # 工具链编排
+│
+│  ── 工作流 ──
+├── workflows/
+│   ├── PLAYBOOK-bug-fix.md               #   Bug 修复
+│   ├── PLAYBOOK-feature-implementation.md #   功能实现
+│   ├── PLAYBOOK-ci-fix.md                #   CI 修复
+│   └── PLAYBOOK-refactoring.md           #   重构
+│
+│  ── Git Hooks ──
+├── hooks/
+│   ├── pre-commit                        #   密钥检测 + lint
+│   ├── commit-msg                        #   Conventional Commits
+│   ├── pre-push                          #   分支保护 + 测试
+│   └── install-hooks.sh                  #   一键安装
+│
+│  ── 脚本 ──
+├── scripts/
+│   ├── setup-project.sh                  #   项目自动设置
+│   └── verify-no-secrets.sh              #   密钥扫描
+│
+│  ── 模板 ──
+├── templates/
+│   ├── environment.yaml                  #   环境蓝图
+│   ├── pr-template.md                    #   PR 描述
+│   ├── pre-commit-config.yaml            #   pre-commit 配置
+│   └── gitignore.template                #   .gitignore
+│
+└── README.md
 ```
+
+## 零外部依赖
+
+所有引用的脚本、模板、配置均已包含。无需额外下载。
