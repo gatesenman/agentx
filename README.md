@@ -24,6 +24,36 @@
 
 ## 快速使用
 
+### 方式一：CLI 工具（推荐）
+
+```bash
+# 一键安装 agentx 命令行工具
+curl -fsSL https://raw.githubusercontent.com/gaosichun888/agentx/main/cli/install.sh | bash
+
+# 查看支持的 IDE
+agentx list
+
+# 安装配置到你的项目（自动复制规则文件 + 工作流 + 脚本 + hooks）
+cd /你的项目
+agentx install claude-code           # Claude Code
+agentx install cursor                # Cursor
+agentx install claude-code cursor    # 同时安装多个 IDE
+
+# 安装 Git Hooks
+agentx hooks
+
+# 密钥泄露扫描
+agentx scan
+
+# 诊断配置是否正确
+agentx doctor claude-code
+
+# 更多命令
+agentx help
+```
+
+### 方式二：手动复制
+
 ```bash
 # 克隆本仓库
 git clone https://github.com/gaosichun888/agentx.git
@@ -42,13 +72,6 @@ cp -r agentx/windsurf/.windsurf /你的项目/
 
 # 例: 使用 GitHub Copilot / Codex
 cp agentx/copilot/AGENTS.md /你的项目/
-
-# 例: 使用 Cline
-cp -r agentx/cline/.clinerules /你的项目/
-
-# 例: 使用 CodeBuddy
-cp agentx/codebuddy/CODEBUDDY.md /你的项目/
-cp -r agentx/codebuddy/.codebuddy /你的项目/
 
 # 安装 Git hooks（可选，所有 IDE 通用）
 cd /你的项目 && bash agentx/claude-code/hooks/install-hooks.sh
@@ -148,12 +171,14 @@ cd /你的项目 && bash agentx/claude-code/hooks/install-hooks.sh
 
 | 文档 | 内容 |
 |------|------|
+| `cli/README.md` | CLI 工具完整使用文档 |
 | `docs/USAGE-GUIDE.md` | 13 个 IDE 的完整使用教程 |
 | `docs/CUSTOMIZATION.md` | 规则自定义指南 |
 | `docs/WORKFLOWS-GUIDE.md` | 工作流详细使用说明 |
 | `docs/MIGRATION.md` | 跨 IDE 迁移指南 |
 | `docs/FAQ.md` | 常见问题解答 |
 | `docs/BEST-PRACTICES.md` | 最佳实践和反模式 |
+| `wiki/` | 完整 Wiki 文档（24 篇） |
 
 ## 许可
 
