@@ -1,0 +1,1264 @@
+#!/usr/bin/env bash
+# ============================================================================
+# AgentX CLI — AI 智能体配置管理工具
+# 版本: 1.0.0
+# 项目: https://github.com/gaosichun888/agentx
+# 描述: 一键安装、管理 13 个 IDE 的 AI 智能体规则配置
+# ============================================================================
+
+set -euo pipefail
+
+# ---- 版本与全局变量 ----
+readonly VERSION="1.0.0"
+readonly PROGRAM_NAME="agentx"
+readonly REPO_URL="https://github.com/gaosichun888/agentx"
+readonly REPO_RAW_URL="https://raw.githubusercontent.com/gaosichun888/agentx/main"
+
+# 缓存目录（存放下载的配置源）
+CACHE_DIR="${AGENTX_CACHE_DIR:-${HOME}/.agentx}"
+SOURCE_DIR=""  # 配置源目录，运行时确定
+
+# ---- 支持的 IDE 列表 ----
+declare -A IDE_NAMES=(
+  [claude-code]="Claude Code (Anthropic)"
+  [cursor]="Cursor IDE"
+  [windsurf]="Windsurf IDE"
+  [copilot]="GitHub Copilot / Copilot Chat"
+  [codex]="OpenAI Codex CLI"
+  [cline]="Cline (VS Code)"
+  [codebuddy]="CodeBuddy (腾讯)"
+  [augment]="Augment Code"
+  [aider]="Aider"
+  [roo-code]="Roo Code"
+  [amazon-q]="Amazon Q Developer"
+  [qodo]="Qodo (原 CodiumAI)"
+  [devin]="Devin (Cognition AI)"
+)
+
+# IDE 排序列表
+IDE_LIST=(claude-code cursor windsurf copilot codex cline codebuddy augment aider roo-code amazon-q qodo devin)
+
+# ---- 颜色输出 ----
+if [[ -t 1 ]]; then
+  RED='\033[0;31m'
+  GREEN='\033[0;32m'
+  YELLOW='\033[0;33m'
+  BLUE='\033[0;34m'
+  CYAN='\033[0;36m'
+  BOLD='\033[1m'
+  DIM='\033[2m'
+  NC='\033[0m'
+else
+  RED='' GREEN='' YELLOW='' BLUE='' CYAN='' BOLD='' DIM='' NC=''
+fi
+
+# ---- 日志函数 ----
+info()    { echo -e "${GREEN}[✓]${NC} $*"; }
+warn()    { echo -e "${YELLOW}[!]${NC} $*"; }
+error()   { echo -e "${RED}[✗]${NC} $*" >&2; }
+step()    { echo -e "${BLUE}[→]${NC} $*"; }
+header()  { echo -e "\n${BOLD}${CYAN}$*${NC}\n"; }
+
+# ---- 工具函数 ----
+
+# 检查命令是否存在
+has_cmd() { command -v "$1" &>/dev/null; }
+
+# 获取配置源目录
+resolve_source_dir() {
+  # 1. 环境变量指定
+  if [[ -n "${AGENTX_SOURCE:-}" ]] && [[ -d "$AGENTX_SOURCE" ]]; then
+    SOURCE_DIR="$AGENTX_SOURCE"
+    return 0
+  fi
+
+  # 2. 脚本自身所在的仓库
+  local script_dir
+  script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  local repo_root="${script_dir%/cli}"
+  if [[ -d "$repo_root/claude-code" ]] && [[ -d "$repo_root/cursor" ]]; then
+    SOURCE_DIR="$repo_root"
+    return 0
+  fi
+
+  # 3. 缓存目录
+  if [[ -d "$CACHE_DIR/repo/claude-code" ]]; then
+    SOURCE_DIR="$CACHE_DIR/repo"
+    return 0
+  fi
+
+  # 4. 需要下载
+  return 1
+}
+
+# 确保配置源可用
+ensure_source() {
+  if resolve_source_dir; then
+    return 0
+  fi
+
+  step "首次使用，正在下载 AgentX 配置源..."
+
+  if ! has_cmd git; then
+    error "需要安装 git。请先安装: https://git-scm.com/"
+    exit 1
+  fi
+
+  mkdir -p "$CACHE_DIR"
+  git clone --depth 1 "$REPO_URL.git" "$CACHE_DIR/repo" 2>/dev/null || {
+    error "下载失败。请检查网络连接。"
+    exit 1
+  }
+
+  SOURCE_DIR="$CACHE_DIR/repo"
+  info "配置源已下载到 $CACHE_DIR/repo"
+}
+
+# 验证 IDE 名称
+validate_ide() {
+  local ide="$1"
+  if [[ -z "${IDE_NAMES[$ide]+_}" ]]; then
+    error "不支持的 IDE: $ide"
+    echo ""
+    echo "支持的 IDE:"
+    for id in "${IDE_LIST[@]}"; do
+      echo "  $id  →  ${IDE_NAMES[$id]}"
+    done
+    exit 1
+  fi
+}
+
+# 获取目标目录
+get_target_dir() {
+  local target="${1:-.}"
+  if [[ ! -d "$target" ]]; then
+    error "目标目录不存在: $target"
+    exit 1
+  fi
+  echo "$(cd "$target" && pwd)"
+}
+
+# 复制文件（保留目录结构）
+copy_with_structure() {
+  local src="$1"
+  local dst="$2"
+  local base="$3"
+
+  local rel_path="${src#$base/}"
+  local dst_path="$dst/$rel_path"
+  local dst_dir
+  dst_dir="$(dirname "$dst_path")"
+
+  mkdir -p "$dst_dir"
+  cp "$src" "$dst_path"
+}
+
+# ---- 主命令实现 ----
+
+# ==== help ====
+cmd_help() {
+  cat <<EOF
+${BOLD}AgentX CLI${NC} v${VERSION} — AI 智能体配置管理工具
+
+${BOLD}用法:${NC}
+  ${PROGRAM_NAME} <命令> [选项]
+
+${BOLD}命令:${NC}
+  ${GREEN}list${NC}                       列出所有支持的 IDE
+  ${GREEN}install${NC} <ide> [选项]        安装指定 IDE 的智能体配置
+  ${GREEN}install-all${NC} [选项]          安装所有 IDE 的智能体配置
+  ${GREEN}uninstall${NC} <ide> [选项]      卸载指定 IDE 的智能体配置
+  ${GREEN}hooks${NC} [选项]               安装 Git Hooks（pre-commit/commit-msg/pre-push）
+  ${GREEN}scan${NC} [选项]                扫描项目中的密钥泄露
+  ${GREEN}setup${NC} [选项]               自动检测并安装项目依赖
+  ${GREEN}doctor${NC} [选项]              诊断已安装的配置是否正确
+  ${GREEN}update${NC}                     更新 AgentX 配置源到最新版本
+  ${GREEN}version${NC}                    显示版本号
+  ${GREEN}help${NC}                       显示此帮助信息
+
+${BOLD}选项:${NC}
+  --target <目录>     指定目标项目目录（默认: 当前目录）
+  --with-docs         安装时同时复制参考文档
+  --with-hooks        安装时同时安装 Git Hooks
+  --force             覆盖已存在的文件
+  --dry-run           只显示将要执行的操作，不实际执行
+
+${BOLD}示例:${NC}
+  ${DIM}# 查看所有支持的 IDE${NC}
+  ${PROGRAM_NAME} list
+
+  ${DIM}# 安装 Claude Code 配置到当前项目${NC}
+  ${PROGRAM_NAME} install claude-code
+
+  ${DIM}# 安装 Cursor 配置到指定目录，同时装 hooks${NC}
+  ${PROGRAM_NAME} install cursor --target /path/to/project --with-hooks
+
+  ${DIM}# 同时安装多个 IDE${NC}
+  ${PROGRAM_NAME} install claude-code cursor windsurf
+
+  ${DIM}# 安装 Git Hooks${NC}
+  ${PROGRAM_NAME} hooks
+
+  ${DIM}# 扫描密钥泄露${NC}
+  ${PROGRAM_NAME} scan
+
+  ${DIM}# 诊断配置是否正确${NC}
+  ${PROGRAM_NAME} doctor claude-code
+
+${BOLD}环境变量:${NC}
+  AGENTX_SOURCE       指定本地配置源目录
+  AGENTX_CACHE_DIR    指定缓存目录（默认: ~/.agentx）
+
+${BOLD}更多信息:${NC}
+  仓库: ${REPO_URL}
+  文档: ${REPO_URL}/wiki
+
+EOF
+}
+
+# ==== version ====
+cmd_version() {
+  echo "${PROGRAM_NAME} v${VERSION}"
+}
+
+# ==== list ====
+cmd_list() {
+  header "支持的 IDE 列表（共 ${#IDE_LIST[@]} 个）"
+
+  printf "${BOLD}%-4s %-15s %-30s %s${NC}\n" "序号" "IDE 标识" "IDE 名称" "核心文件"
+  echo "──────────────────────────────────────────────────────────────────────────"
+
+  local i=1
+  for ide in "${IDE_LIST[@]}"; do
+    local core_file
+    case "$ide" in
+      claude-code) core_file="CLAUDE.md" ;;
+      cursor)      core_file=".cursorrules + .cursor/rules/*.mdc" ;;
+      windsurf)    core_file=".windsurfrules + .windsurf/rules/*.md" ;;
+      copilot)     core_file="AGENTS.md + .github/copilot-instructions.md" ;;
+      codex)       core_file="AGENTS.md" ;;
+      cline)       core_file=".clinerules/*.md" ;;
+      codebuddy)   core_file="CODEBUDDY.md + .codebuddy/rules/*.mdc" ;;
+      augment)     core_file=".augment/rules/*.md" ;;
+      aider)       core_file=".aider.conf.yml + CONVENTIONS.md" ;;
+      roo-code)    core_file=".roorules + .roo/rules/*.md" ;;
+      amazon-q)    core_file=".amazonq/rules/*.md" ;;
+      qodo)        core_file="AGENTS.md + .qodo/agents/*.toml" ;;
+      devin)       core_file=".devin/skills/*/SKILL.md" ;;
+    esac
+    printf "  %-4s %-15s %-30s %s\n" "$i." "$ide" "${IDE_NAMES[$ide]}" "$core_file"
+    ((i++)) || true
+  done
+
+  echo ""
+  echo "使用 '${PROGRAM_NAME} install <IDE标识>' 安装配置"
+}
+
+# ==== install ====
+cmd_install() {
+  local ides=()
+  local target_dir="."
+  local with_docs=false
+  local with_hooks=false
+  local force=false
+  local dry_run=false
+
+  # 解析参数
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --target)    target_dir="$2"; shift 2 ;;
+      --with-docs) with_docs=true; shift ;;
+      --with-hooks) with_hooks=true; shift ;;
+      --force)     force=true; shift ;;
+      --dry-run)   dry_run=true; shift ;;
+      --*)         error "未知选项: $1"; exit 1 ;;
+      *)           ides+=("$1"); shift ;;
+    esac
+  done
+
+  if [[ ${#ides[@]} -eq 0 ]]; then
+    error "请指定要安装的 IDE。"
+    echo "使用 '${PROGRAM_NAME} list' 查看所有支持的 IDE。"
+    exit 1
+  fi
+
+  target_dir="$(get_target_dir "$target_dir")"
+  ensure_source
+
+  for ide in "${ides[@]}"; do
+    validate_ide "$ide"
+    _install_one_ide "$ide" "$target_dir" "$with_docs" "$force" "$dry_run"
+  done
+
+  if [[ "$with_hooks" == "true" ]]; then
+    cmd_hooks --target "$target_dir" ${force:+--force} ${dry_run:+--dry-run}
+  fi
+}
+
+# 安装单个 IDE 的配置
+_install_one_ide() {
+  local ide="$1"
+  local target="$2"
+  local with_docs="$3"
+  local force="$4"
+  local dry_run="$5"
+
+  local src_dir="$SOURCE_DIR/$ide"
+
+  if [[ ! -d "$src_dir" ]]; then
+    error "配置源目录不存在: $src_dir"
+    return 1
+  fi
+
+  header "安装 ${IDE_NAMES[$ide]} 配置"
+  step "源目录: $src_dir"
+  step "目标目录: $target"
+
+  local installed=0
+  local skipped=0
+
+  # 定义每个 IDE 的核心规则文件
+  local -a core_files=()
+  case "$ide" in
+    claude-code)
+      core_files=(CLAUDE.md CLAUDE.local.md)
+      ;;
+    cursor)
+      core_files=(.cursorrules)
+      # 加上 .cursor/rules/ 目录下的所有文件
+      if [[ -d "$src_dir/.cursor" ]]; then
+        while IFS= read -r f; do
+          core_files+=("${f#$src_dir/}")
+        done < <(find "$src_dir/.cursor" -type f 2>/dev/null)
+      fi
+      ;;
+    windsurf)
+      core_files=(.windsurfrules)
+      if [[ -d "$src_dir/.windsurf" ]]; then
+        while IFS= read -r f; do
+          core_files+=("${f#$src_dir/}")
+        done < <(find "$src_dir/.windsurf" -type f 2>/dev/null)
+      fi
+      ;;
+    copilot)
+      core_files=(AGENTS.md)
+      if [[ -d "$src_dir/.github" ]]; then
+        while IFS= read -r f; do
+          core_files+=("${f#$src_dir/}")
+        done < <(find "$src_dir/.github" -type f 2>/dev/null)
+      fi
+      ;;
+    codex)
+      core_files=(AGENTS.md)
+      ;;
+    cline)
+      if [[ -d "$src_dir/.clinerules" ]]; then
+        while IFS= read -r f; do
+          core_files+=("${f#$src_dir/}")
+        done < <(find "$src_dir/.clinerules" -type f 2>/dev/null)
+      fi
+      ;;
+    codebuddy)
+      core_files=(CODEBUDDY.md)
+      if [[ -d "$src_dir/.codebuddy" ]]; then
+        while IFS= read -r f; do
+          core_files+=("${f#$src_dir/}")
+        done < <(find "$src_dir/.codebuddy" -type f 2>/dev/null)
+      fi
+      ;;
+    augment)
+      if [[ -d "$src_dir/.augment" ]]; then
+        while IFS= read -r f; do
+          core_files+=("${f#$src_dir/}")
+        done < <(find "$src_dir/.augment" -type f 2>/dev/null)
+      fi
+      ;;
+    aider)
+      core_files=(.aider.conf.yml CONVENTIONS.md .aiderignore)
+      ;;
+    roo-code)
+      core_files=(.roorules)
+      if [[ -d "$src_dir/.roo" ]]; then
+        while IFS= read -r f; do
+          core_files+=("${f#$src_dir/}")
+        done < <(find "$src_dir/.roo" -type f 2>/dev/null)
+      fi
+      ;;
+    amazon-q)
+      if [[ -d "$src_dir/.amazonq" ]]; then
+        while IFS= read -r f; do
+          core_files+=("${f#$src_dir/}")
+        done < <(find "$src_dir/.amazonq" -type f 2>/dev/null)
+      fi
+      ;;
+    qodo)
+      core_files=(AGENTS.md)
+      if [[ -d "$src_dir/.qodo" ]]; then
+        while IFS= read -r f; do
+          core_files+=("${f#$src_dir/}")
+        done < <(find "$src_dir/.qodo" -type f 2>/dev/null)
+      fi
+      ;;
+    devin)
+      if [[ -d "$src_dir/.devin" ]]; then
+        while IFS= read -r f; do
+          core_files+=("${f#$src_dir/}")
+        done < <(find "$src_dir/.devin" -type f 2>/dev/null)
+      fi
+      ;;
+  esac
+
+  # 复制核心规则文件
+  for rel in "${core_files[@]}"; do
+    local src_file="$src_dir/$rel"
+    local dst_file="$target/$rel"
+
+    if [[ ! -f "$src_file" ]]; then
+      continue
+    fi
+
+    if [[ -f "$dst_file" ]] && [[ "$force" != "true" ]]; then
+      warn "跳过已存在的文件: $rel （使用 --force 覆盖）"
+      ((skipped++)) || true
+      continue
+    fi
+
+    if [[ "$dry_run" == "true" ]]; then
+      echo "  [预览] 将复制: $rel"
+    else
+      mkdir -p "$(dirname "$dst_file")"
+      cp "$src_file" "$dst_file"
+    fi
+    ((installed++)) || true
+  done
+
+  # 复制共享基础设施文件（workflows/hooks/scripts/templates）
+  local -a infra_dirs=(workflows hooks scripts templates)
+  for dir in "${infra_dirs[@]}"; do
+    if [[ -d "$src_dir/$dir" ]]; then
+      while IFS= read -r f; do
+        local rel="${f#$src_dir/}"
+        local dst_file="$target/$rel"
+
+        if [[ -f "$dst_file" ]] && [[ "$force" != "true" ]]; then
+          warn "跳过已存在: $rel"
+          ((skipped++)) || true
+          continue
+        fi
+
+        if [[ "$dry_run" == "true" ]]; then
+          echo "  [预览] 将复制: $rel"
+        else
+          mkdir -p "$(dirname "$dst_file")"
+          cp "$f" "$dst_file"
+          # 设置脚本的可执行权限
+          if [[ "$dir" == "hooks" || "$dir" == "scripts" ]]; then
+            chmod +x "$dst_file"
+          fi
+        fi
+        ((installed++)) || true
+      done < <(find "$src_dir/$dir" -type f 2>/dev/null)
+    fi
+  done
+
+  # 可选：复制参考文档
+  if [[ "$with_docs" == "true" ]]; then
+    local -a doc_files=(
+      DECISION-TREES.md
+      MCP-TOOLS-REFERENCE.md
+      MEMORY-SYSTEM.md
+      SKILLS-REFERENCE.md
+      AUTOMATIONS-REFERENCE.md
+      TOOL-CHAINS.md
+      TROUBLESHOOTING.md
+      PROMPT-PATTERNS.md
+    )
+    for doc in "${doc_files[@]}"; do
+      if [[ -f "$src_dir/$doc" ]]; then
+        local dst_file="$target/.agentx-docs/$doc"
+
+        if [[ -f "$dst_file" ]] && [[ "$force" != "true" ]]; then
+          ((skipped++)) || true
+          continue
+        fi
+
+        if [[ "$dry_run" == "true" ]]; then
+          echo "  [预览] 将复制文档: .agentx-docs/$doc"
+        else
+          mkdir -p "$target/.agentx-docs"
+          cp "$src_dir/$doc" "$dst_file"
+        fi
+        ((installed++)) || true
+      fi
+    done
+  fi
+
+  echo ""
+  if [[ "$dry_run" == "true" ]]; then
+    info "预览完成。实际安装请去掉 --dry-run"
+  else
+    info "安装完成: ${installed} 个文件已复制，${skipped} 个跳过"
+  fi
+}
+
+# ==== install-all ====
+cmd_install_all() {
+  local args=("${IDE_LIST[@]}" "$@")
+  cmd_install "${args[@]}"
+}
+
+# ==== uninstall ====
+cmd_uninstall() {
+  local ide=""
+  local target_dir="."
+  local dry_run=false
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --target)  target_dir="$2"; shift 2 ;;
+      --dry-run) dry_run=true; shift ;;
+      --*)       error "未知选项: $1"; exit 1 ;;
+      *)         ide="$1"; shift ;;
+    esac
+  done
+
+  if [[ -z "$ide" ]]; then
+    error "请指定要卸载的 IDE。"
+    exit 1
+  fi
+
+  validate_ide "$ide"
+  target_dir="$(get_target_dir "$target_dir")"
+
+  header "卸载 ${IDE_NAMES[$ide]} 配置"
+
+  local removed=0
+
+  # 定义每个 IDE 要删除的文件/目录
+  local -a remove_targets=()
+  case "$ide" in
+    claude-code)
+      remove_targets=(CLAUDE.md CLAUDE.local.md)
+      ;;
+    cursor)
+      remove_targets=(.cursorrules .cursor/rules)
+      ;;
+    windsurf)
+      remove_targets=(.windsurfrules .windsurf/rules)
+      ;;
+    copilot)
+      remove_targets=(AGENTS.md .github/copilot-instructions.md)
+      ;;
+    codex)
+      remove_targets=(AGENTS.md)
+      ;;
+    cline)
+      remove_targets=(.clinerules)
+      ;;
+    codebuddy)
+      remove_targets=(CODEBUDDY.md .codebuddy)
+      ;;
+    augment)
+      remove_targets=(.augment)
+      ;;
+    aider)
+      remove_targets=(.aider.conf.yml CONVENTIONS.md .aiderignore)
+      ;;
+    roo-code)
+      remove_targets=(.roorules .roo)
+      ;;
+    amazon-q)
+      remove_targets=(.amazonq)
+      ;;
+    qodo)
+      remove_targets=(AGENTS.md .qodo)
+      ;;
+    devin)
+      remove_targets=(.devin)
+      ;;
+  esac
+
+  for t in "${remove_targets[@]}"; do
+    local full="$target_dir/$t"
+    if [[ -e "$full" ]]; then
+      if [[ "$dry_run" == "true" ]]; then
+        echo "  [预览] 将删除: $t"
+      else
+        rm -rf "$full"
+        step "已删除: $t"
+      fi
+      ((removed++)) || true
+    fi
+  done
+
+  # 清理共享文件（仅当无其他 IDE 使用时提示）
+  if [[ "$dry_run" != "true" ]]; then
+    echo ""
+    if [[ $removed -gt 0 ]]; then
+      info "已卸载 ${IDE_NAMES[$ide]} 的 ${removed} 个文件/目录"
+      echo ""
+      warn "共享文件 (workflows/hooks/scripts/templates) 未删除"
+      echo "  这些文件可能被其他 IDE 使用。如需删除，请手动执行:"
+      echo "  rm -rf $target_dir/workflows $target_dir/hooks $target_dir/scripts $target_dir/templates"
+    else
+      warn "未找到 ${IDE_NAMES[$ide]} 的配置文件"
+    fi
+  fi
+}
+
+# ==== hooks ====
+cmd_hooks() {
+  local target_dir="."
+  local force=false
+  local dry_run=false
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --target)  target_dir="$2"; shift 2 ;;
+      --force)   force=true; shift ;;
+      --dry-run) dry_run=true; shift ;;
+      --*)       error "未知选项: $1"; exit 1 ;;
+      *)         shift ;;
+    esac
+  done
+
+  target_dir="$(get_target_dir "$target_dir")"
+
+  header "安装 Git Hooks"
+
+  # 检查是否是 git 仓库
+  if [[ ! -d "$target_dir/.git" ]]; then
+    error "目标目录不是 git 仓库: $target_dir"
+    echo "请先运行: git init"
+    exit 1
+  fi
+
+  local hooks_dir="$target_dir/.git/hooks"
+  ensure_source
+
+  # 使用第一个可用的 IDE 的 hooks 目录作为源
+  local hooks_src=""
+  for ide in "${IDE_LIST[@]}"; do
+    if [[ -d "$SOURCE_DIR/$ide/hooks" ]]; then
+      hooks_src="$SOURCE_DIR/$ide/hooks"
+      break
+    fi
+  done
+
+  if [[ -z "$hooks_src" ]]; then
+    error "未找到 hooks 源文件"
+    exit 1
+  fi
+
+  local installed=0
+  for hook_file in "$hooks_src"/pre-commit "$hooks_src"/commit-msg "$hooks_src"/pre-push; do
+    if [[ ! -f "$hook_file" ]]; then
+      continue
+    fi
+
+    local hook_name
+    hook_name="$(basename "$hook_file")"
+    local dst="$hooks_dir/$hook_name"
+
+    if [[ -f "$dst" ]] && [[ "$force" != "true" ]]; then
+      warn "跳过已存在的 hook: $hook_name （使用 --force 覆盖）"
+      continue
+    fi
+
+    if [[ "$dry_run" == "true" ]]; then
+      echo "  [预览] 将安装 hook: $hook_name"
+    else
+      cp "$hook_file" "$dst"
+      chmod +x "$dst"
+      step "已安装: $hook_name"
+    fi
+    ((installed++)) || true
+  done
+
+  echo ""
+  if [[ $installed -gt 0 ]]; then
+    info "已安装 ${installed} 个 Git Hooks"
+    echo ""
+    echo "  Hooks 功能:"
+    echo "  • pre-commit  — 密钥检测、禁止文件检查、大文件检查、lint、typecheck"
+    echo "  • commit-msg  — Conventional Commits 格式验证"
+    echo "  • pre-push    — 分支保护（禁止直推 main/master）"
+  fi
+}
+
+# ==== scan ====
+cmd_scan() {
+  local target_dir="."
+  local verbose=false
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --target)  target_dir="$2"; shift 2 ;;
+      --verbose) verbose=true; shift ;;
+      --*)       error "未知选项: $1"; exit 1 ;;
+      *)         shift ;;
+    esac
+  done
+
+  target_dir="$(get_target_dir "$target_dir")"
+
+  header "密钥泄露扫描"
+  step "扫描目录: $target_dir"
+
+  local found=0
+
+  # 密钥模式定义
+  declare -A PATTERNS=(
+    ["AWS Access Key"]='AKIA[0-9A-Z]{16}'
+    ["AWS Secret Key"]='["\x27][0-9a-zA-Z/+]{40}["\x27]'
+    ["GitHub Token"]='gh[ps]_[A-Za-z0-9_]{36,}'
+    ["GitHub PAT (fine-grained)"]='github_pat_[A-Za-z0-9_]{22,}'
+    ["OpenAI API Key"]='sk-[A-Za-z0-9]{20,}'
+    ["Private Key"]='-----BEGIN (RSA |EC |DSA |OPENSSH )?PRIVATE KEY-----'
+    ["Generic API Key"]='(?i)(api[_-]?key|apikey|api_secret)["\x27\s]*[:=]\s*["\x27][A-Za-z0-9]{16,}'
+    ["Database URL"]='(mysql|postgres|postgresql|mongodb|redis):\/\/[^\s<>"{}\|\\^`\[\]]+'
+    ["JWT Token"]='eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}'
+    ["Slack Token"]='xox[bpors]-[0-9A-Za-z-]{10,}'
+    ["Google API Key"]='AIza[0-9A-Za-z_-]{35}'
+    ["Password Assignment"]='(?i)(password|passwd|pwd)\s*[:=]\s*["\x27][^\s]{8,}'
+    ["Anthropic API Key"]='sk-ant-[A-Za-z0-9_-]{20,}'
+  )
+
+  echo ""
+
+  # 确定搜索工具
+  local grep_cmd="grep"
+  if has_cmd rg; then
+    grep_cmd="rg"
+  fi
+
+  for pattern_name in "${!PATTERNS[@]}"; do
+    local pattern="${PATTERNS[$pattern_name]}"
+    local matches
+
+    if [[ "$grep_cmd" == "rg" ]]; then
+      matches=$(rg -l --no-messages \
+        --glob '!.git' --glob '!node_modules' --glob '!vendor' \
+        --glob '!*.min.js' --glob '!*.min.css' --glob '!*.lock' \
+        --glob '!package-lock.json' --glob '!yarn.lock' --glob '!pnpm-lock.yaml' \
+        --glob '!*.map' --glob '!dist' --glob '!build' \
+        -e "$pattern" "$target_dir" 2>/dev/null || true)
+    else
+      matches=$(grep -rl --include='*.{js,ts,py,rb,go,java,yml,yaml,json,env,cfg,conf,toml,sh}' \
+        -E "$pattern" "$target_dir" 2>/dev/null \
+        | grep -v '.git/' | grep -v 'node_modules/' | grep -v 'vendor/' || true)
+    fi
+
+    if [[ -n "$matches" ]]; then
+      error "发现 ${pattern_name}:"
+      while IFS= read -r file; do
+        echo "    $file"
+        ((found++)) || true
+      done <<< "$matches"
+    elif [[ "$verbose" == "true" ]]; then
+      info "未发现 ${pattern_name}"
+    fi
+  done
+
+  echo ""
+  if [[ $found -gt 0 ]]; then
+    error "发现 ${found} 处潜在的密钥泄露！"
+    echo ""
+    echo "  建议操作:"
+    echo "  1. 检查上述文件，确认是否为真实密钥"
+    echo "  2. 如果是真实密钥，立即将其加入 .gitignore"
+    echo "  3. 如果已提交，立即轮换（revoke + regenerate）密钥"
+    echo "  4. 使用环境变量或密钥管理服务替代硬编码"
+    return 1
+  else
+    info "未发现密钥泄露"
+  fi
+}
+
+# ==== setup ====
+cmd_setup() {
+  local target_dir="."
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --target) target_dir="$2"; shift 2 ;;
+      --*)      error "未知选项: $1"; exit 1 ;;
+      *)        shift ;;
+    esac
+  done
+
+  target_dir="$(get_target_dir "$target_dir")"
+
+  header "项目依赖自动设置"
+  step "项目目录: $target_dir"
+
+  local detected=false
+
+  # Node.js / JavaScript / TypeScript
+  if [[ -f "$target_dir/package.json" ]]; then
+    detected=true
+    echo ""
+    step "检测到 Node.js 项目"
+
+    local pkg_mgr="npm"
+    local install_cmd="npm install"
+
+    if [[ -f "$target_dir/pnpm-lock.yaml" ]] || [[ -f "$target_dir/pnpm-workspace.yaml" ]]; then
+      pkg_mgr="pnpm"
+      install_cmd="pnpm install"
+      if ! has_cmd pnpm; then
+        step "安装 pnpm..."
+        npm install -g pnpm 2>/dev/null || {
+          warn "pnpm 安装失败，回退到 npm"
+          pkg_mgr="npm"
+          install_cmd="npm install"
+        }
+      fi
+    elif [[ -f "$target_dir/yarn.lock" ]]; then
+      pkg_mgr="yarn"
+      install_cmd="yarn install"
+      if ! has_cmd yarn; then
+        step "安装 yarn..."
+        npm install -g yarn 2>/dev/null || {
+          warn "yarn 安装失败，回退到 npm"
+          pkg_mgr="npm"
+          install_cmd="npm install"
+        }
+      fi
+    elif [[ -f "$target_dir/bun.lockb" ]] || [[ -f "$target_dir/bun.lock" ]]; then
+      pkg_mgr="bun"
+      install_cmd="bun install"
+      if ! has_cmd bun; then
+        warn "bun 未安装，回退到 npm"
+        pkg_mgr="npm"
+        install_cmd="npm install"
+      fi
+    fi
+
+    step "使用 ${pkg_mgr} 安装依赖..."
+    (cd "$target_dir" && $install_cmd) || warn "依赖安装出现警告"
+    info "Node.js 依赖安装完成"
+  fi
+
+  # Python
+  if [[ -f "$target_dir/pyproject.toml" ]] || [[ -f "$target_dir/requirements.txt" ]] || [[ -f "$target_dir/setup.py" ]]; then
+    detected=true
+    echo ""
+    step "检测到 Python 项目"
+
+    if [[ -f "$target_dir/pyproject.toml" ]] && has_cmd uv; then
+      step "使用 uv 安装依赖..."
+      (cd "$target_dir" && uv sync) || warn "uv sync 出现警告"
+    elif [[ -f "$target_dir/pyproject.toml" ]] && has_cmd poetry; then
+      step "使用 poetry 安装依赖..."
+      (cd "$target_dir" && poetry install) || warn "poetry install 出现警告"
+    elif [[ -f "$target_dir/Pipfile" ]] && has_cmd pipenv; then
+      step "使用 pipenv 安装依赖..."
+      (cd "$target_dir" && pipenv install --dev) || warn "pipenv 出现警告"
+    elif [[ -f "$target_dir/requirements.txt" ]]; then
+      step "使用 pip 安装依赖..."
+      (cd "$target_dir" && pip install -r requirements.txt) || warn "pip install 出现警告"
+    fi
+    info "Python 依赖安装完成"
+  fi
+
+  # Rust
+  if [[ -f "$target_dir/Cargo.toml" ]]; then
+    detected=true
+    echo ""
+    step "检测到 Rust 项目"
+    if has_cmd cargo; then
+      step "运行 cargo build..."
+      (cd "$target_dir" && cargo build) || warn "cargo build 出现警告"
+      info "Rust 构建完成"
+    else
+      warn "未检测到 cargo。请安装 Rust: https://rustup.rs/"
+    fi
+  fi
+
+  # Go
+  if [[ -f "$target_dir/go.mod" ]]; then
+    detected=true
+    echo ""
+    step "检测到 Go 项目"
+    if has_cmd go; then
+      step "运行 go mod download..."
+      (cd "$target_dir" && go mod download) || warn "go mod download 出现警告"
+      info "Go 依赖下载完成"
+    else
+      warn "未检测到 go。请安装 Go: https://go.dev/dl/"
+    fi
+  fi
+
+  # Ruby
+  if [[ -f "$target_dir/Gemfile" ]]; then
+    detected=true
+    echo ""
+    step "检测到 Ruby 项目"
+    if has_cmd bundle; then
+      step "运行 bundle install..."
+      (cd "$target_dir" && bundle install) || warn "bundle install 出现警告"
+      info "Ruby 依赖安装完成"
+    else
+      warn "未检测到 bundler。请安装: gem install bundler"
+    fi
+  fi
+
+  # PHP
+  if [[ -f "$target_dir/composer.json" ]]; then
+    detected=true
+    echo ""
+    step "检测到 PHP 项目"
+    if has_cmd composer; then
+      step "运行 composer install..."
+      (cd "$target_dir" && composer install) || warn "composer install 出现警告"
+      info "PHP 依赖安装完成"
+    else
+      warn "未检测到 composer。请安装: https://getcomposer.org/"
+    fi
+  fi
+
+  # Java / Kotlin
+  if [[ -f "$target_dir/pom.xml" ]]; then
+    detected=true
+    echo ""
+    step "检测到 Maven 项目"
+    if has_cmd mvn; then
+      step "运行 mvn install..."
+      (cd "$target_dir" && mvn install -DskipTests) || warn "mvn 出现警告"
+    fi
+  elif [[ -f "$target_dir/build.gradle" ]] || [[ -f "$target_dir/build.gradle.kts" ]]; then
+    detected=true
+    echo ""
+    step "检测到 Gradle 项目"
+    if [[ -f "$target_dir/gradlew" ]]; then
+      (cd "$target_dir" && chmod +x gradlew && ./gradlew build -x test) || warn "gradle 出现警告"
+    elif has_cmd gradle; then
+      (cd "$target_dir" && gradle build -x test) || warn "gradle 出现警告"
+    fi
+  fi
+
+  # .NET
+  if [[ -f "$target_dir"/*.csproj ]] || [[ -f "$target_dir"/*.sln ]] 2>/dev/null; then
+    detected=true
+    echo ""
+    step "检测到 .NET 项目"
+    if has_cmd dotnet; then
+      step "运行 dotnet restore..."
+      (cd "$target_dir" && dotnet restore) || warn "dotnet restore 出现警告"
+      info ".NET 依赖恢复完成"
+    fi
+  fi
+
+  # Pre-commit hooks
+  if [[ -f "$target_dir/.pre-commit-config.yaml" ]]; then
+    echo ""
+    step "检测到 pre-commit 配置"
+    if has_cmd pre-commit; then
+      (cd "$target_dir" && pre-commit install) || warn "pre-commit install 出现警告"
+      info "pre-commit hooks 已安装"
+    else
+      warn "未检测到 pre-commit。安装: pip install pre-commit"
+    fi
+  fi
+
+  echo ""
+  if [[ "$detected" == "true" ]]; then
+    info "项目设置完成"
+  else
+    warn "未检测到已知的项目类型"
+    echo "  支持的项目类型: Node.js, Python, Rust, Go, Ruby, PHP, Java/Kotlin, .NET"
+  fi
+}
+
+# ==== doctor ====
+cmd_doctor() {
+  local ide=""
+  local target_dir="."
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --target) target_dir="$2"; shift 2 ;;
+      --*)      error "未知选项: $1"; exit 1 ;;
+      *)        ide="$1"; shift ;;
+    esac
+  done
+
+  target_dir="$(get_target_dir "$target_dir")"
+
+  header "AgentX 配置诊断"
+  step "目标目录: $target_dir"
+
+  local total_checks=0
+  local passed=0
+  local failed=0
+  local warnings=0
+
+  # 通用检查函数
+  check_file() {
+    local file="$1"
+    local desc="$2"
+    local required="${3:-true}"
+    ((total_checks++)) || true
+
+    if [[ -f "$target_dir/$file" ]]; then
+      local lines
+      lines=$(wc -l < "$target_dir/$file")
+      info "$desc — 存在 (${lines} 行)"
+      ((passed++)) || true
+    elif [[ "$required" == "true" ]]; then
+      error "$desc — 缺失: $file"
+      ((failed++)) || true
+    else
+      warn "$desc — 可选文件缺失: $file"
+      ((warnings++)) || true
+    fi
+  }
+
+  check_dir() {
+    local dir="$1"
+    local desc="$2"
+    ((total_checks++)) || true
+
+    if [[ -d "$target_dir/$dir" ]]; then
+      local count
+      count=$(find "$target_dir/$dir" -type f | wc -l)
+      info "$desc — 存在 (${count} 个文件)"
+      ((passed++)) || true
+    else
+      error "$desc — 缺失: $dir/"
+      ((failed++)) || true
+    fi
+  }
+
+  check_exec() {
+    local file="$1"
+    local desc="$2"
+    ((total_checks++)) || true
+
+    if [[ -x "$target_dir/$file" ]]; then
+      info "$desc — 可执行"
+      ((passed++)) || true
+    elif [[ -f "$target_dir/$file" ]]; then
+      warn "$desc — 存在但不可执行（运行 chmod +x $file）"
+      ((warnings++)) || true
+    else
+      error "$desc — 缺失: $file"
+      ((failed++)) || true
+    fi
+  }
+
+  # 如果指定了 IDE，只检查那个 IDE
+  if [[ -n "$ide" ]]; then
+    validate_ide "$ide"
+    echo ""
+    step "检查 ${IDE_NAMES[$ide]} 配置..."
+    echo ""
+
+    case "$ide" in
+      claude-code)
+        check_file "CLAUDE.md" "主规则文件"
+        check_file "CLAUDE.local.md" "本地规则文件" false
+        ;;
+      cursor)
+        check_file ".cursorrules" "主规则文件"
+        check_dir ".cursor/rules" "上下文规则目录"
+        ;;
+      windsurf)
+        check_file ".windsurfrules" "主规则文件"
+        check_dir ".windsurf/rules" "上下文规则目录"
+        ;;
+      copilot)
+        check_file "AGENTS.md" "主规则文件"
+        check_file ".github/copilot-instructions.md" "Copilot Chat 指令"
+        ;;
+      codex)
+        check_file "AGENTS.md" "主规则文件"
+        ;;
+      cline)
+        check_dir ".clinerules" "规则目录"
+        ;;
+      codebuddy)
+        check_file "CODEBUDDY.md" "主规则文件"
+        check_dir ".codebuddy/rules" "上下文规则目录"
+        ;;
+      augment)
+        check_dir ".augment/rules" "规则目录"
+        ;;
+      aider)
+        check_file ".aider.conf.yml" "主配置文件"
+        check_file "CONVENTIONS.md" "约定文件"
+        check_file ".aiderignore" "忽略文件" false
+        ;;
+      roo-code)
+        check_file ".roorules" "主规则文件"
+        check_dir ".roo/rules" "上下文规则目录"
+        ;;
+      amazon-q)
+        check_dir ".amazonq/rules" "规则目录"
+        ;;
+      qodo)
+        check_file "AGENTS.md" "主规则文件"
+        check_dir ".qodo/agents" "Agent 配置目录"
+        ;;
+      devin)
+        check_dir ".devin/skills" "技能目录"
+        ;;
+    esac
+  else
+    # 自动检测已安装的 IDE
+    echo ""
+    step "自动检测已安装的 IDE 配置..."
+    echo ""
+
+    local detected_any=false
+    for ide_id in "${IDE_LIST[@]}"; do
+      local found=false
+      case "$ide_id" in
+        claude-code) [[ -f "$target_dir/CLAUDE.md" ]] && found=true ;;
+        cursor)      [[ -f "$target_dir/.cursorrules" ]] && found=true ;;
+        windsurf)    [[ -f "$target_dir/.windsurfrules" ]] && found=true ;;
+        copilot)     [[ -f "$target_dir/.github/copilot-instructions.md" ]] && found=true ;;
+        codex)       [[ -f "$target_dir/AGENTS.md" ]] && found=true ;;
+        cline)       [[ -d "$target_dir/.clinerules" ]] && found=true ;;
+        codebuddy)   [[ -f "$target_dir/CODEBUDDY.md" ]] && found=true ;;
+        augment)     [[ -d "$target_dir/.augment" ]] && found=true ;;
+        aider)       [[ -f "$target_dir/.aider.conf.yml" ]] && found=true ;;
+        roo-code)    [[ -f "$target_dir/.roorules" ]] && found=true ;;
+        amazon-q)    [[ -d "$target_dir/.amazonq" ]] && found=true ;;
+        qodo)        [[ -d "$target_dir/.qodo" ]] && found=true ;;
+        devin)       [[ -d "$target_dir/.devin" ]] && found=true ;;
+      esac
+
+      if [[ "$found" == "true" ]]; then
+        detected_any=true
+        echo -e "  ${GREEN}●${NC} ${IDE_NAMES[$ide_id]}"
+      fi
+    done
+
+    if [[ "$detected_any" != "true" ]]; then
+      warn "未检测到任何 IDE 配置"
+      echo "  使用 '${PROGRAM_NAME} install <ide>' 安装配置"
+      return 0
+    fi
+  fi
+
+  # 检查共享基础设施
+  echo ""
+  step "检查共享基础设施..."
+  echo ""
+
+  check_dir "workflows" "工作流目录" 2>/dev/null || true
+  check_dir "hooks" "Hooks 目录" 2>/dev/null || true
+  check_dir "scripts" "脚本目录" 2>/dev/null || true
+  check_dir "templates" "模板目录" 2>/dev/null || true
+
+  # 检查脚本可执行权限
+  for script in hooks/pre-commit hooks/commit-msg hooks/pre-push hooks/install-hooks.sh scripts/setup-project.sh scripts/verify-no-secrets.sh; do
+    if [[ -f "$target_dir/$script" ]]; then
+      check_exec "$script" "脚本权限: $script"
+    fi
+  done
+
+  # 检查 Git Hooks 安装状态
+  echo ""
+  step "检查 Git Hooks 状态..."
+  echo ""
+  ((total_checks++)) || true
+
+  if [[ -d "$target_dir/.git/hooks" ]]; then
+    local hooks_installed=0
+    for hook in pre-commit commit-msg pre-push; do
+      if [[ -x "$target_dir/.git/hooks/$hook" ]]; then
+        ((hooks_installed++)) || true
+      fi
+    done
+
+    if [[ $hooks_installed -eq 3 ]]; then
+      info "Git Hooks — 全部已安装 (3/3)"
+      ((passed++)) || true
+    elif [[ $hooks_installed -gt 0 ]]; then
+      warn "Git Hooks — 部分安装 (${hooks_installed}/3)"
+      echo "  运行 '${PROGRAM_NAME} hooks' 安装缺失的 hooks"
+      ((warnings++)) || true
+    else
+      warn "Git Hooks — 未安装"
+      echo "  运行 '${PROGRAM_NAME} hooks' 安装"
+      ((warnings++)) || true
+    fi
+  else
+    warn "不是 Git 仓库 — 跳过 hooks 检查"
+    ((warnings++)) || true
+  fi
+
+  # 汇总
+  echo ""
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo -e "${BOLD}诊断结果:${NC} 共 ${total_checks} 项检查"
+  echo -e "  ${GREEN}通过: ${passed}${NC}"
+  [[ $warnings -gt 0 ]] && echo -e "  ${YELLOW}警告: ${warnings}${NC}"
+  [[ $failed -gt 0 ]] && echo -e "  ${RED}失败: ${failed}${NC}"
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+  if [[ $failed -gt 0 ]]; then
+    return 1
+  fi
+}
+
+# ==== update ====
+cmd_update() {
+  header "更新 AgentX 配置源"
+
+  if [[ -d "$CACHE_DIR/repo" ]]; then
+    step "更新缓存..."
+    (cd "$CACHE_DIR/repo" && git pull origin main 2>/dev/null) || {
+      warn "更新失败，重新下载..."
+      rm -rf "$CACHE_DIR/repo"
+      git clone --depth 1 "$REPO_URL.git" "$CACHE_DIR/repo" 2>/dev/null || {
+        error "下载失败"
+        exit 1
+      }
+    }
+    info "配置源已更新到最新版本"
+  else
+    step "首次下载配置源..."
+    mkdir -p "$CACHE_DIR"
+    git clone --depth 1 "$REPO_URL.git" "$CACHE_DIR/repo" 2>/dev/null || {
+      error "下载失败"
+      exit 1
+    }
+    info "配置源已下载"
+  fi
+}
+
+# ---- 主入口 ----
+main() {
+  if [[ $# -eq 0 ]]; then
+    cmd_help
+    exit 0
+  fi
+
+  local command="$1"
+  shift
+
+  case "$command" in
+    list)        cmd_list "$@" ;;
+    install)     cmd_install "$@" ;;
+    install-all) cmd_install_all "$@" ;;
+    uninstall)   cmd_uninstall "$@" ;;
+    hooks)       cmd_hooks "$@" ;;
+    scan)        cmd_scan "$@" ;;
+    setup)       cmd_setup "$@" ;;
+    doctor)      cmd_doctor "$@" ;;
+    update)      cmd_update "$@" ;;
+    version|-v|--version) cmd_version ;;
+    help|-h|--help)       cmd_help ;;
+    *)
+      error "未知命令: $command"
+      echo "使用 '${PROGRAM_NAME} help' 查看帮助。"
+      exit 1
+      ;;
+  esac
+}
+
+main "$@"
