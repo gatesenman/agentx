@@ -4,6 +4,8 @@
 > 按 IDE 分类，自包含，直接放进项目即可使用。
 > 复刻自 Devin AI 的完整工作规则和运行时行为。
 
+**简体中文** · [English](README.en.md)
+
 ## 支持的 IDE / AI 工具
 
 | 目录 | IDE / 工具 | 核心文件 | 安装方式 |
@@ -28,7 +30,7 @@
 
 ```bash
 # 一键安装 agentx 命令行工具
-curl -fsSL https://raw.githubusercontent.com/gaosichun888/agentx/main/cli/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/gatesenman/agentx/main/cli/install.sh | bash
 
 # 查看支持的 IDE
 agentx list
@@ -56,7 +58,7 @@ agentx help
 
 ```bash
 # 克隆本仓库
-git clone https://github.com/gaosichun888/agentx.git
+git clone https://github.com/gatesenman/agentx.git
 
 # 选择你使用的 IDE，复制对应文件到你的项目
 # 例: 使用 Claude Code
@@ -76,6 +78,14 @@ cp agentx/copilot/AGENTS.md /你的项目/
 # 安装 Git hooks（可选，所有 IDE 通用）
 cd /你的项目 && bash agentx/claude-code/hooks/install-hooks.sh
 ```
+
+## 截图
+
+以下是在一个空项目里真实运行 CLI 的终端输出（`cli/agentx`，用 `script` 记录 ANSI 输出后渲染成图片）：
+
+![agentx list](docs/screenshots/cli-list.png)
+
+![agentx install / doctor](docs/screenshots/cli-install-doctor.png)
 
 ## 每个 IDE 包含的完整内容
 
@@ -179,6 +189,30 @@ cd /你的项目 && bash agentx/claude-code/hooks/install-hooks.sh
 | `docs/FAQ.md` | 常见问题解答 |
 | `docs/BEST-PRACTICES.md` | 最佳实践和反模式 |
 | `wiki/` | 完整 Wiki 文档（24 篇） |
+
+## 仓库结构
+
+```
+<ide>/        13 个 IDE / 工具目录（claude-code、cursor、windsurf、copilot、codex、devin、cline、codebuddy、augment、aider、roo-code、amazon-q、qodo），各自自包含
+cli/          agentx 命令行（bash 脚本 agentx、一键安装脚本 install.sh、CLI 文档）
+docs/         使用教程、自定义、工作流、迁移、FAQ、最佳实践
+wiki/         Wiki 文档
+```
+
+## 配置
+
+`agentx` CLI 读取两个环境变量：
+
+| 变量 | 说明 |
+| --- | --- |
+| `AGENTX_SOURCE` | 指定本地配置源目录（例如本仓库的克隆目录），设置后不再从网络获取 |
+| `AGENTX_CACHE_DIR` | 缓存目录，默认 `~/.agentx`；未指定源目录时会把仓库克隆到 `$AGENTX_CACHE_DIR/repo` |
+
+直接在仓库里运行 `cli/agentx` 时会自动使用仓库根目录作为配置源。
+
+## 参与贡献
+
+欢迎提交 Issue 和 Pull Request。修改某个 IDE 的规则时，请同步检查其他 IDE 目录中的对应内容，并在一个空项目中运行 `agentx install <ide>` 和 `agentx doctor <ide>` 确认安装结果。
 
 ## 许可
 

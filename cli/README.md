@@ -9,20 +9,20 @@
 ### 方式一：一键安装（推荐）
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/gaosichun888/agentx/main/cli/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/gatesenman/agentx/main/cli/install.sh | bash
 ```
 
 或使用 wget:
 
 ```bash
-wget -qO- https://raw.githubusercontent.com/gaosichun888/agentx/main/cli/install.sh | bash
+wget -qO- https://raw.githubusercontent.com/gatesenman/agentx/main/cli/install.sh | bash
 ```
 
 ### 方式二：手动安装
 
 ```bash
 # 克隆仓库
-git clone https://github.com/gaosichun888/agentx.git ~/.agentx/repo
+git clone https://github.com/gatesenman/agentx.git ~/.agentx/repo
 
 # 复制到 PATH
 mkdir -p ~/.local/bin
@@ -37,7 +37,7 @@ source ~/.bashrc
 ### 方式三：直接从仓库运行
 
 ```bash
-git clone https://github.com/gaosichun888/agentx.git
+git clone https://github.com/gatesenman/agentx.git
 cd agentx
 chmod +x cli/agentx
 ./cli/agentx help
@@ -261,7 +261,7 @@ agentx scan --target /path/to/project --verbose
 ```yaml
 # GitHub Actions
 - name: 安装 AgentX
-  run: curl -fsSL https://raw.githubusercontent.com/gaosichun888/agentx/main/cli/install.sh | bash
+  run: curl -fsSL https://raw.githubusercontent.com/gatesenman/agentx/main/cli/install.sh | bash
 
 - name: 密钥扫描
   run: agentx scan
