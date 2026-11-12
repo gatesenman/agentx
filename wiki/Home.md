@@ -67,7 +67,7 @@
 
 ## 快速链接
 
-- **仓库地址**: https://github.com/gaosichun888/agentx
+- **仓库地址**: https://github.com/gatesenman/agentx
 - **文件总数**: 348 个
 - **代码总行数**: ~72,000 行
 - **支持 IDE**: 13 个
