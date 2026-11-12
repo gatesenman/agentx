@@ -52,7 +52,7 @@
 
 ```bash
 # 1. 克隆本仓库
-git clone https://github.com/gaosichun888/agentx.git
+git clone https://github.com/gatesenman/agentx.git
 
 # 2. 进入你要配置的 IDE 目录
 cd agentx/<ide-name>
