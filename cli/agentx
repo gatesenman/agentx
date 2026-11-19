@@ -1004,7 +1004,7 @@ cmd_doctor() {
     if [[ -f "$target_dir/$file" ]]; then
       local lines
       lines=$(wc -l < "$target_dir/$file")
-      info "$desc — 存在 (${lines} 行)"
+      info "$desc — 存在 ($file, ${lines} 行)"
       ((passed++)) || true
     elif [[ "$required" == "true" ]]; then
       error "$desc — 缺失: $file"
@@ -1138,8 +1138,12 @@ cmd_doctor() {
 
     if [[ "$detected_any" != "true" ]]; then
       warn "未检测到任何 IDE 配置"
-      echo "  使用 '${PROGRAM_NAME} install <ide>' 安装配置"
-      return 0
+      echo "  使用 '${PROGRAM_NAME} install <ide> --target <目录>' 安装后再运行 doctor"
+      echo ""
+      echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+      echo -e "${BOLD}诊断结果:${NC} 未检测到任何 IDE 配置"
+      echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+      return 1
     fi
   fi
 

@@ -95,15 +95,14 @@ set +e
 empty_out="$("$AGENTX" doctor --target "$EMPTY" 2>&1)"
 empty_rc=$?
 set -e
-if [[ "$empty_out" == *"未检测到任何 IDE 配置"* ]]; then
-  echo "ok  - doctor on an empty directory reports no IDE config"
+if [[ "$empty_out" == *"未检测到任何 IDE 配置"* && "$empty_out" == *"诊断结果"* && $empty_rc -ne 0 ]]; then
+  echo "ok  - doctor on an empty directory reports a summary and exits non-zero"
   PASS=$((PASS + 1))
 else
-  echo "FAIL - doctor on an empty directory reports no IDE config"
+  echo "FAIL - doctor on an empty directory reports a summary and exits non-zero (exit $empty_rc)"
   echo "$empty_out" | sed 's/^/      /'
   FAIL=$((FAIL + 1))
 fi
-# Exit status of an empty target is recorded but not asserted here; v2 tightens it.
 
 TARGET="$WORKDIR/project"
 mkdir -p "$TARGET"
@@ -114,6 +113,8 @@ assert_ok "install cursor into a temp project" \
 assert_ok "doctor cursor on an installed temp project" \
   "$AGENTX" doctor cursor --target "$TARGET"
 assert_contains "doctor cursor reports the Cursor checks passed" "主规则文件" \
+  "$AGENTX" doctor cursor --target "$TARGET"
+assert_contains "doctor names the missing-or-present rule file" ".cursorrules" \
   "$AGENTX" doctor cursor --target "$TARGET"
 
 echo
