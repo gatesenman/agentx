@@ -82,7 +82,8 @@ assert_contains() {
 
 assert_ok "help exits 0" "$AGENTX" help
 assert_contains "help lists doctor" "doctor" "$AGENTX" help
-assert_contains "version prints 1.0.0" "1.0.0" "$AGENTX" version
+assert_contains "help lists init" "init" "$AGENTX" help
+assert_contains "version prints 1.1.0" "1.1.0" "$AGENTX" version
 assert_contains "list includes cursor" "cursor" "$AGENTX" list
 assert_contains "list includes claude-code" "claude-code" "$AGENTX" list
 assert_fail "unknown command exits non-zero" "$AGENTX" not-a-command
@@ -116,6 +117,15 @@ assert_contains "doctor cursor reports the Cursor checks passed" "主规则文�
   "$AGENTX" doctor cursor --target "$TARGET"
 assert_contains "doctor names the missing-or-present rule file" ".cursorrules" \
   "$AGENTX" doctor cursor --target "$TARGET"
+
+
+INIT_TARGET="$WORKDIR/init-project"
+mkdir -p "$INIT_TARGET"
+assert_ok "init --ide cursor into a temp project" \
+  "$AGENTX" init --ide cursor --target "$INIT_TARGET"
+assert_ok "doctor after init --ide cursor" \
+  "$AGENTX" doctor cursor --target "$INIT_TARGET"
+assert_fail "init without an IDE exits non-zero" "$AGENTX" init --target "$INIT_TARGET"
 
 echo
 echo "passed=$PASS failed=$FAIL"

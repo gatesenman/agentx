@@ -1,5 +1,7 @@
 # AgentX — 多 IDE AI 智能体完整运行基础设施
 
+**[简体中文](README.zh-CN.md)** · Version 1.1.0
+
 > 完整的 AI 编程智能体规则、工作流、技能、记忆系统、工具链、自动化配置。
 > 按 IDE 分类，自包含，直接放进项目即可使用。
 > 复刻自 Devin AI 的完整工作规则和运行时行为。
@@ -28,12 +30,17 @@
 
 ```bash
 # 一键安装 agentx 命令行工具
-curl -fsSL https://raw.githubusercontent.com/gaosichun888/agentx/main/cli/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/gatesenman/agentx/main/cli/install.sh | bash
 
 # 查看支持的 IDE
 agentx list
 
-# 安装配置到你的项目（自动复制规则文件 + 工作流 + 脚本 + hooks）
+# 推荐：init 后立刻 doctor（1.1.0 端到端入口）
+mkdir -p /你的项目
+agentx init --ide cursor --target /你的项目
+agentx doctor cursor --target /你的项目
+
+# 安装配置到你的项目（init 等价于 install）
 cd /你的项目
 agentx install claude-code           # Claude Code
 agentx install cursor                # Cursor
@@ -56,7 +63,7 @@ agentx help
 
 ```bash
 # 克隆本仓库
-git clone https://github.com/gaosichun888/agentx.git
+git clone https://github.com/gatesenman/agentx.git
 
 # 选择你使用的 IDE，复制对应文件到你的项目
 # 例: 使用 Claude Code
