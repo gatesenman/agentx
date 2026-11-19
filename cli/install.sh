@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 # ============================================================================
 # AgentX CLI 一键安装脚本
-# 用法: curl -fsSL https://raw.githubusercontent.com/gaosichun888/agentx/main/cli/install.sh | bash
-# 或:   wget -qO- https://raw.githubusercontent.com/gaosichun888/agentx/main/cli/install.sh | bash
+# 用法: curl -fsSL https://raw.githubusercontent.com/gatesenman/agentx/main/cli/install.sh | bash
+# 或:   wget -qO- https://raw.githubusercontent.com/gatesenman/agentx/main/cli/install.sh | bash
 # ============================================================================
 
 set -euo pipefail
 
 # ---- 配置 ----
-REPO_URL="https://github.com/gaosichun888/agentx"
+REPO_URL="https://github.com/gatesenman/agentx"
 INSTALL_DIR="${AGENTX_INSTALL_DIR:-${HOME}/.agentx}"
 BIN_DIR="${HOME}/.local/bin"
 
