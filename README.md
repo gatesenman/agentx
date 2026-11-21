@@ -1,5 +1,7 @@
 # AgentX — 多 IDE AI 智能体完整运行基础设施
 
+[简体中文](README.md) · [English](README.en.md)
+
 > 完整的 AI 编程智能体规则、工作流、技能、记忆系统、工具链、自动化配置。
 > 按 IDE 分类，自包含，直接放进项目即可使用。
 > 复刻自 Devin AI 的完整工作规则和运行时行为。
@@ -180,6 +182,10 @@ cd /你的项目 && bash agentx/claude-code/hooks/install-hooks.sh
 | `docs/BEST-PRACTICES.md` | 最佳实践和反模式 |
 | `wiki/` | 完整 Wiki 文档（24 篇） |
 
-## 许可
+## 贡献
 
-MIT
+欢迎通过 Issue 和 Pull Request 参与，详见 [CONTRIBUTING.md](CONTRIBUTING.md)。安全问题请按 [SECURITY.md](SECURITY.md) 私下报告。参与时请遵守 [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)。
+
+## 许可证
+
+本仓库尚未附带 LICENSE 文件，许可证未指定。
