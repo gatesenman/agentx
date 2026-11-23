@@ -169,6 +169,14 @@ cd /你的项目 && bash agentx/claude-code/hooks/install-hooks.sh
 
 如果你的项目同时有多个 AI 工具使用者，可以只放一个 `AGENTS.md`，大部分工具都能识别。
 
+## 界面截图
+
+以下图片来自尚未合并的 `docs/bilingual-readme` 分支，已目视确认为 AgentX CLI 终端实拍（`agentx list` 与 install/doctor）。窗口装饰看起来像 macOS Terminal。AgentX 是 CLI / IDE 规则基础设施，不是图形界面产品。这些图不是 Windows 安装包安装后的截图。本仓库没有已发布的 GitHub Release 安装包。
+
+| `agentx list` | install / doctor |
+| --- | --- |
+| ![agentx list](docs/screenshots/cli-list.png) | ![agentx install/doctor](docs/screenshots/cli-install-doctor.png) |
+
 ## 文档
 
 | 文档 | 内容 |

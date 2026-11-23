@@ -83,7 +83,11 @@ cd /your/project && bash agentx/claude-code/hooks/install-hooks.sh
 
 ## Screenshots
 
-Real terminal output of the CLI run in an empty project (`cli/agentx`, ANSI output recorded with `script` and rendered to an image; the CLI prints Chinese messages):
+These images were recovered from the still-unmerged `docs/bilingual-readme` branch and visually confirmed as terminal captures of the AgentX CLI (`agentx list` and install/doctor). The window chrome looks like macOS Terminal; this is CLI infrastructure, not a graphical product window. They are not post-Windows-install captures. This repository has no published GitHub Release installer.
+
+| `agentx list` | install / doctor |
+| --- | --- |
+| ![agentx list](docs/screenshots/cli-list.png) | ![agentx install/doctor](docs/screenshots/cli-install-doctor.png) |
 
 ## What each IDE directory contains
 
