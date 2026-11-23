@@ -83,7 +83,13 @@ cd /your/project && bash agentx/claude-code/hooks/install-hooks.sh
 
 ## Screenshots
 
-Real terminal output of the CLI run in an empty project (`cli/agentx`, ANSI output recorded with `script` and rendered to an image; the CLI prints Chinese messages):
+A previous draft of this section said a real CLI terminal image (ANSI output recorded with `script` and rendered to an image) was included. **No such image file is in this repository**, so that claim is removed.
+
+AgentX is CLI / IDE-rules infrastructure, not a graphical product window. A reserved path for a future authentic terminal capture (do not link it until the file exists):
+
+- `docs/screenshots/01-cli-help-or-doctor.png`
+
+This repository has no published GitHub Release installer. The automatic Source code zip/tar from GitHub is not an installer.
 
 ## What each IDE directory contains
 
